@@ -1,0 +1,2002 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BarberQ - Sistem Antrian Barbershop Otomatis</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Cinzel (Display Barbershop), Plus Jakarta Sans (UI Modern), JetBrains Mono (Nomor Antrian) -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=JetBrains+Mono:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- jsPDF Library untuk Unduh Struk / Invoice PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        barber: {
+                            dark: '#0f172a',
+                            card: '#1e293b',
+                            gold: '#f59e0b',
+                            goldHover: '#d97706',
+                            accent: '#ef4444',
+                            light: '#f8fafc'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        serif: ['Cinzel', 'serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Tekstur halus untuk kesan mewah & autentik */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-image: radial-gradient(rgba(245, 158, 11, 0.04) 1px, transparent 0);
+            background-size: 24px 24px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .barber-stripe {
+            background: repeating-linear-gradient(
+                45deg,
+                #ef4444,
+                #ef4444 10px,
+                #ffffff 10px,
+                #ffffff 20px,
+                #2563eb 20px,
+                #2563eb 30px
+            );
+            background-size: 200% 200%;
+            animation: moveStripes 2.8s linear infinite;
+        }
+        @keyframes moveStripes {
+            0% { background-position: 0 0; }
+            100% { background-position: 50px 50px; }
+        }
+
+        .barber-pole-cylinder {
+            background: repeating-linear-gradient(
+                -45deg,
+                #ef4444 0px,
+                #ef4444 5px,
+                #ffffff 5px,
+                #ffffff 10px,
+                #2563eb 10px,
+                #2563eb 15px,
+                #ffffff 15px,
+                #ffffff 20px
+            );
+            background-size: 28.28px 28.28px;
+            animation: poleSpin 1.4s linear infinite;
+            box-shadow:
+                inset 3px 0 5px rgba(255, 255, 255, 0.55),
+                inset -4px 0 6px rgba(0, 0, 0, 0.75),
+                0 0 12px rgba(245, 158, 11, 0.25);
+        }
+        @keyframes poleSpin {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 28.28px; }
+        }
+        
+        .glass-panel {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.78), rgba(15, 23, 42, 0.88));
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Sorotan otomatis saat radio button Layanan atau Kapster dipilih */
+        .service-option:has(input:checked),
+        .barber-card:has(input:checked) {
+            border-color: #f59e0b;
+            background: linear-gradient(145deg, rgba(245, 158, 11, 0.14), rgba(15, 23, 42, 0.92));
+            box-shadow: 0 0 18px rgba(245, 158, 11, 0.18);
+            transform: translateY(-2px);
+        }
+
+        .barber-card:has(input:checked) .avatar-ring {
+            border-color: #fbbf24;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.45);
+            transform: scale(1.05);
+        }
+
+        .service-option:has(input:checked) .service-icon-ring {
+            border-color: #fbbf24;
+            background-color: rgba(245, 158, 11, 0.2);
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+            transform: scale(1.06);
+        }
+
+        /* Efek kilau shimmer untuk tombol utama */
+        .btn-shimmer {
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-shimmer::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 55%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+            transform: skewX(-20deg);
+            animation: shimmerSweep 3.5s infinite;
+        }
+        @keyframes shimmerSweep {
+            0% { left: -100%; }
+            45%, 100% { left: 160%; }
+        }
+
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-tab-enter {
+            animation: fadeSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+        .animate-float-slow {
+            animation: floatSlow 3.5s ease-in-out infinite;
+        }
+        @keyframes chairPulse {
+            0%, 100% { box-shadow: 0 0 18px rgba(245, 158, 11, 0.25); }
+            50% { box-shadow: 0 0 32px rgba(245, 158, 11, 0.5); }
+        }
+        .tv-chair-active {
+            animation: chairPulse 2.5s ease-in-out infinite;
+        }
+        .card-interactive {
+            transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+        }
+        .card-interactive:hover {
+            transform: translateY(-2px);
+        }
+        @keyframes miniSnip {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(-20deg); }
+        }
+        .animate-mini-snip, .clipper-buzz {
+            animation: miniSnip 0.9s ease-in-out infinite;
+        }
+
+        /* Custom Scrollbar Mewah */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #f59e0b;
+        }
+    </style>
+</head>
+<body class="bg-barber-dark text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-barber-gold selection:text-slate-900 relative overflow-x-hidden">
+
+    <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div class="ambient-orb absolute -top-24 -left-24 w-80 h-80 rounded-full bg-amber-500/10 blur-3xl"></div>
+        <div class="ambient-orb absolute top-1/2 -right-28 w-96 h-96 rounded-full bg-amber-600/5 blur-3xl" style="animation-delay: -5s;"></div>
+    </div>
+
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none"></div>
+
+    <header class="border-b border-slate-800 bg-black/95 sticky top-0 z-40 backdrop-blur-md shadow-2xl">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 h-24 flex items-center justify-between gap-2">
+            
+            <nav class="hidden md:flex items-center gap-6 lg:gap-8 flex-1 justify-end pr-4">
+                <button onclick="switchTab('customer')" id="tab-btn-customer" class="tab-btn active text-xs sm:text-sm font-bold tracking-widest text-amber-400 hover:text-white uppercase transition-all duration-200 py-2 border-b-2 border-amber-400">
+                    AMBIL ANTRIAN
+                </button>
+                <button onclick="switchTab('display')" id="tab-btn-display" class="tab-btn text-xs sm:text-sm font-medium tracking-widest text-slate-400 hover:text-white uppercase transition-all duration-200 py-2 border-b-2 border-transparent">
+                    LAYAR TV
+                </button>
+            </nav>
+
+            <!-- Logo Emblem Vintage Barbershop Klasik di Bagian Atas -->
+            <div class="flex flex-col items-center justify-center cursor-pointer shrink-0 py-1 px-2 group" onclick="switchTab('customer')" title="Sanctuary Cut Co.">
+                <div class="relative w-12 h-12 rounded-full bg-gradient-to-tr from-amber-600 via-amber-400 to-amber-200 p-[2.5px] shadow-lg shadow-amber-500/25 flex items-center justify-center mb-1 transition-transform duration-300 group-hover:scale-110">
+                    <div class="w-full h-full rounded-full overflow-hidden bg-slate-950 flex items-center justify-center">
+                        <img src="https://d2zdpiztbgorvt.cloudfront.net/region1/us/1196105/biz_photo/91beade339364ae8aca9e9dcce6dec-mo-biz-photo-ee47cd5b1f74442fb3eefa39237342-booksy.jpeg?size=640x427"
+                             onerror="this.onerror=null; this.parentNode.innerHTML='<i class=\'fa-solid fa-scissors text-amber-400 text-lg\'></i>';"
+                             class="w-full h-full object-cover"
+                             alt="Logo Sanctuary Cut Co.">
+                    </div>
+                </div>
+                <div class="text-center">
+                    <h1 class="font-serif text-sm sm:text-base font-extrabold tracking-[0.26em] text-white uppercase leading-none group-hover:text-amber-300 transition-colors">SANCTUARY</h1>
+                    <p class="text-[8px] sm:text-[9px] text-amber-400 font-bold tracking-[0.34em] uppercase mt-1">CUT CO.</p>
+                </div>
+            </div>
+
+            <div class="hidden md:flex items-center gap-4 lg:gap-6 flex-1 justify-start pl-4">
+                <button onclick="switchTab('admin')" id="tab-btn-admin" class="tab-btn text-xs sm:text-sm font-medium tracking-widest text-slate-400 hover:text-white uppercase transition-all duration-200 py-2 border-b-2 border-transparent">
+                    KAPSTER
+                </button>
+                <button onclick="switchTab('contact')" id="tab-btn-contact" class="tab-btn text-xs sm:text-sm font-medium tracking-widest text-slate-400 hover:text-white uppercase transition-all duration-200 py-2 border-b-2 border-transparent">
+                    KONTAK
+                </button>
+                
+                <div class="flex items-center gap-2 ml-auto">
+                    <div id="shopStatusBadge" class="px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
+                        <span id="shopStatusText">Buka</span>
+                    </div>
+                    <button id="sound-toggle-btn" onclick="toggleSound()" class="w-7 h-7 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 flex items-center justify-center transition" title="Toggle Suara Panggilan">
+                        <i id="sound-icon" class="fa-solid fa-volume-high text-amber-400 text-[10px]"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex md:hidden items-center gap-1">
+                <div id="shopStatusBadgeMobile" class="px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[9px] font-bold uppercase">
+                    Buka
+                </div>
+                <button onclick="toggleSound()" class="w-6 h-6 rounded-lg bg-slate-900 text-amber-400 flex items-center justify-center border border-slate-800 text-[10px]">
+                    <i id="sound-icon-mob" class="fa-solid fa-volume-high"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="md:hidden flex border-t border-slate-800 bg-black justify-around p-2 text-xs">
+            <button onclick="switchTab('customer')" id="mob-tab-customer" class="flex flex-col items-center gap-0.5 py-1 px-2 rounded-lg text-amber-400 font-semibold">
+                <i class="fa-solid fa-ticket text-sm"></i> Tiket
+            </button>
+            <button onclick="switchTab('display')" id="mob-tab-display" class="flex flex-col items-center gap-0.5 py-1 px-2 rounded-lg text-slate-400">
+                <i class="fa-solid fa-desktop text-sm"></i> Layar TV
+            </button>
+            <button onclick="switchTab('admin')" id="mob-tab-admin" class="flex flex-col items-center gap-0.5 py-1 px-2 rounded-lg text-slate-400">
+                <i class="fa-solid fa-user-gear text-sm"></i> Kapster
+            </button>
+            <button onclick="switchTab('contact')" id="mob-tab-contact" class="flex flex-col items-center gap-0.5 py-1 px-2 rounded-lg text-slate-400">
+                <i class="fa-solid fa-address-book text-sm"></i> Kontak
+            </button>
+        </div>
+        <div class="w-full h-[1px] bg-gradient-to-r from-transparent via-amber-500/30 to-transparent"></div>
+    </header>
+
+    <main class="relative z-10 flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+
+        <section id="view-customer" class="tab-content space-y-5">
+            <div class="relative rounded-2xl overflow-hidden bg-gradient-to-r from-slate-950 via-slate-900 to-amber-950/90 px-4 py-4 sm:px-6 sm:py-5 border border-slate-800/90 shadow-xl">
+                <div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-5">
+                    
+                    <div class="flex items-center gap-4 sm:gap-5 w-full md:w-auto">
+                        <div class="h-[88px] sm:h-[94px] w-11 sm:w-12 flex flex-col items-center justify-between shrink-0 select-none py-2 px-2 rounded-xl bg-slate-950/85 border border-amber-500/25 shadow-inner" title="Sanctuary Cut Co. Barber Pole">
+                            <div class="flex flex-col items-center shrink-0">
+                                <div class="w-1.5 h-1.5 rounded-full bg-amber-300 shadow-sm"></div>
+                                <div class="w-5 h-1.5 rounded-t-full bg-gradient-to-r from-amber-600 via-amber-200 to-amber-600 border-t border-amber-200/50"></div>
+                                <div class="w-[22px] h-[2px] bg-slate-700 border-x border-amber-400/40 rounded-full"></div>
+                            </div>
+                            <div class="w-4 flex-1 my-[1px] barber-pole-cylinder border-x border-white/25 relative overflow-hidden">
+                                <div class="absolute inset-y-0 left-[2px] w-[2px] bg-white/45 rounded-full"></div>
+                            </div>
+                            <div class="flex flex-col items-center shrink-0">
+                                <div class="w-[22px] h-[2px] bg-slate-700 border-x border-amber-400/40 rounded-full"></div>
+                                <div class="w-5 h-1.5 rounded-b-full bg-gradient-to-r from-amber-600 via-amber-200 to-amber-600 border-b border-amber-200/50"></div>
+                                <div class="w-1.5 h-1 rounded-b-full bg-amber-400/90"></div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col justify-center min-h-[88px] sm:min-h-[94px] max-w-lg">
+                            <div>
+                                <span class="text-amber-400 font-bold text-[10px] sm:text-xs uppercase tracking-[0.18em] bg-amber-400/10 px-3 py-1 rounded-full border border-amber-400/25 inline-flex items-center gap-1.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span> Registrasi Antrian Digital
+                                </span>
+                            </div>
+                            <h2 class="text-2xl sm:text-[28px] lg:text-[32px] font-serif font-extrabold text-white mt-2 mb-1 tracking-wider leading-tight">
+                                Sanctuary Cut Co.
+                            </h2>
+                            <p class="text-slate-300 text-xs sm:text-sm leading-relaxed">
+                                Silakan pilih layanan dan kapster untuk mengambil nomor antrian Anda.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="relative shrink-0 flex items-center justify-center sm:pr-1">
+                        <div class="relative w-28 h-24 sm:w-36 sm:h-28 flex items-center justify-center overflow-hidden">
+                            <img src="https://cdn.phototourl.com/anon/2026-11-22-16ed3f7b-b08e-4489-857e-279b75bd155e.png" 
+                                 onerror="this.onerror=null; this.parentNode.innerHTML='<div class=\'w-full h-full flex items-center justify-center text-amber-400\'><i class=\'fa-solid fa-scissors text-2xl\'></i></div>'"
+                                 class="w-full h-full object-contain" 
+                                 alt="Banner Sanctuary Cut Co.">
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                <div class="lg:col-span-7 glass-panel p-5 sm:p-6 rounded-2xl shadow-2xl border border-amber-500/15">
+                    <h3 class="text-base sm:text-lg font-bold text-white mb-4 flex items-center justify-between border-b border-slate-700/60 pb-3">
+                        <span class="flex items-center gap-2.5">
+                            <span class="w-7 h-7 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 text-xs">
+                                <i class="fa-solid fa-user-plus"></i>
+                            </span>
+                            Isikan Data Pelanggan
+                        </span>
+                        <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">Step 1 / 1</span>
+                    </h3>
+
+                    <form id="queueForm" onsubmit="handleRegisterQueue(event)" class="space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">Nama Lengkap *</label>
+                                <div class="relative group">
+                                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-amber-400 transition-colors">
+                                        <i class="fa-solid fa-user text-xs"></i>
+                                    </span>
+                                    <input type="text" id="custName" required placeholder="Contoh: Budi Santoso" class="w-full bg-slate-950/70 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/60 transition">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">Nomor WhatsApp *</label>
+                                <div class="relative group">
+                                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-emerald-400">
+                                        <i class="fa-brands fa-whatsapp text-sm"></i>
+                                    </span>
+                                    <input type="tel" id="custPhone" required placeholder="Contoh: 08123456789" class="w-full bg-slate-950/70 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/60 transition">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">Pilih Layanan *</label>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                                <label class="service-option relative flex flex-col items-center justify-between p-3 bg-slate-900/80 border border-slate-700/80 rounded-xl cursor-pointer hover:border-amber-400/70 transition-all duration-200 group text-center">
+                                    <input type="radio" name="service" value="Haircut Regular" data-price="45000" checked class="absolute top-2.5 right-2.5 accent-amber-500 focus:ring-amber-400">
+                                    <div class="service-icon-ring w-12 h-12 mb-2 rounded-full border-2 border-amber-500/40 bg-slate-950 flex items-center justify-center text-amber-400 shadow-md transition-all duration-200">
+                                        <i class="fa-solid fa-scissors text-base group-hover:rotate-45 transition-transform duration-300"></i>
+                                    </div>
+                                    <div class="font-bold text-xs sm:text-[13px] text-white leading-tight">Hair Cut</div>
+                                    <div class="text-[10px] text-slate-400 line-clamp-1 mt-0.5">Potong, cuci & styling</div>
+                                    <div class="text-[11px] font-bold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20 mt-1.5">Rp 45.000</div>
+                                </label>
+
+                                <label class="service-option relative flex flex-col items-center justify-between p-3 bg-slate-900/80 border border-slate-700/80 rounded-xl cursor-pointer hover:border-amber-400/70 transition-all duration-200 group text-center">
+                                    <input type="radio" name="service" value="Beard Trim & Grooming" data-price="20000" class="absolute top-2.5 right-2.5 accent-amber-500 focus:ring-amber-400">
+                                    <div class="service-icon-ring w-12 h-12 mb-2 rounded-full border-2 border-amber-500/40 bg-slate-950 flex items-center justify-center text-amber-400 shadow-md transition-all duration-200">
+                                        <svg class="w-6 h-6 text-amber-400 transition-transform duration-300 group-hover:scale-110" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M5.5 9.5C6.8 8.3 9.2 8.5 11 9.8C11.4 10.1 11.7 10.2 12 10.2C12.3 10.2 12.6 10.1 13 9.8C14.8 8.5 17.2 8.3 18.5 9.5C19.3 10.2 19.8 11.4 19.5 12.3C19.2 13.1 18.2 13.2 17.4 12.7C16.1 11.9 14.3 11.7 12.8 12.3C12.5 12.4 12.2 12.5 12 12.5C11.8 12.5 11.5 12.4 11.2 12.3C9.7 11.7 7.9 11.9 6.6 12.7C5.8 13.2 4.8 13.1 4.5 12.3C4.2 11.4 4.7 10.2 5.5 9.5Z"/>
+                                            <path d="M4.2 13.2C4.1 15.6 5.2 18.2 7.4 19.9C9.1 21.2 10.6 21.8 12 21.8C13.4 21.8 14.9 21.2 16.6 19.9C18.8 18.2 19.9 15.6 19.8 13.2C19.1 13.8 18.1 14.1 17.1 13.8C16.4 15.7 14.6 17.1 12 17.1C9.4 17.1 7.6 15.7 6.9 13.8C5.9 14.1 4.9 13.8 4.2 13.2ZM10.2 14.2C10.8 13.9 11.4 13.8 12 13.8C12.6 13.8 13.2 13.9 13.8 14.2C13.5 15.1 12.8 15.6 12 15.6C11.2 15.6 10.5 15.1 10.2 14.2Z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="font-bold text-xs sm:text-[13px] text-white leading-tight">Beard Grooming</div>
+                                    <div class="text-[10px] text-slate-400 line-clamp-1 mt-0.5">Cukur & rapikan jenggot</div>
+                                    <div class="text-[11px] font-bold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20 mt-1.5">Rp 20.000</div>
+                                </label>
+
+                                <label class="service-option relative flex flex-col items-center justify-between p-3 bg-slate-900/80 border border-slate-700/80 rounded-xl cursor-pointer hover:border-amber-400/70 transition-all duration-200 group text-center">
+                                    <input type="radio" name="service" value="Gentleman VIP Package" data-price="70000" class="absolute top-2.5 right-2.5 accent-amber-500 focus:ring-amber-400">
+                                    <div class="service-icon-ring w-12 h-12 mb-2 rounded-full border-2 border-amber-500/40 bg-slate-950 flex items-center justify-center text-amber-400 shadow-md transition-all duration-200">
+                                        <i class="fa-solid fa-crown text-base group-hover:scale-125 transition-transform duration-300"></i>
+                                    </div>
+                                    <div class="font-bold text-xs sm:text-[13px] text-white leading-tight">VIP Package</div>
+                                    <div class="text-[10px] text-slate-400 line-clamp-1 mt-0.5">Perawatan lengkap</div>
+                                    <div class="text-[11px] font-bold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20 mt-1.5">Rp 70.000</div>
+                                </label>
+
+                                <label class="service-option relative flex flex-col items-center justify-between p-3 bg-slate-900/80 border border-slate-700/80 rounded-xl cursor-pointer hover:border-amber-400/70 transition-all duration-200 group text-center">
+                                    <input type="radio" name="service" value="Hair Color / Dye" data-price="75000" class="absolute top-2.5 right-2.5 accent-amber-500 focus:ring-amber-400">
+                                    <div class="service-icon-ring w-12 h-12 mb-2 rounded-full border-2 border-amber-500/40 bg-slate-950 flex items-center justify-center text-amber-400 shadow-md transition-all duration-200">
+                                        <i class="fa-solid fa-spray-can-sparkles text-base group-hover:-rotate-12 transition-transform duration-300"></i>
+                                    </div>
+                                    <div class="font-bold text-xs sm:text-[13px] text-white leading-tight">Hair Color</div>
+                                    <div class="text-[10px] text-slate-400 line-clamp-1 mt-0.5">Pewarnaan rambut</div>
+                                    <div class="text-[11px] font-bold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20 mt-1.5">Rp 75.000</div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">Pilih Kapster / Barber *</label>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5" id="barberSelectionGrid">
+                                <label class="barber-card relative flex flex-col items-center p-3 bg-slate-900/80 border border-slate-700/80 rounded-xl cursor-pointer hover:border-amber-400/70 transition-all duration-200 group text-center">
+                                    <input type="radio" name="barber" value="Kursi 1 - 2-D" checked class="absolute top-2.5 right-2.5 accent-amber-500 focus:ring-amber-400">
+                                    <div class="avatar-ring relative w-14 h-14 mb-2 rounded-full overflow-hidden border-2 border-amber-500/40 shadow-md bg-slate-950 flex items-center justify-center text-amber-400 transition-all duration-200">
+                                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTRZc-IzOlmKSLIYdd0HZcWH_mPPMf5GsrntGaHNsVS6Q&s=10" onerror="this.onerror=null; this.parentNode.innerHTML='<i class=\'fa-solid fa-user text-xl\'></i>'" class="w-full h-full object-cover" alt="2-D">
+                                    </div>
+                                    <div class="font-bold text-xs sm:text-[13px] text-white">2-D</div>
+                                    <div class="text-[10px] text-amber-400 font-semibold mt-0.5 px-2.5 py-0.5 rounded-full bg-amber-500/10">Kursi 1</div>
+                                </label>
+
+                                <label class="barber-card relative flex flex-col items-center p-3 bg-slate-900/80 border border-slate-700/80 rounded-xl cursor-pointer hover:border-amber-400/70 transition-all duration-200 group text-center">
+                                    <input type="radio" name="barber" value="Kursi 2 - Murdoc" class="absolute top-2.5 right-2.5 accent-amber-500 focus:ring-amber-400">
+                                    <div class="avatar-ring relative w-14 h-14 mb-2 rounded-full overflow-hidden border-2 border-amber-500/40 shadow-md bg-slate-950 flex items-center justify-center text-amber-400 transition-all duration-200">
+                                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRrlaU6EQL61AZmErl-svJxo0A2z0A3iYn2_gz--MPFrA&s=10" onerror="this.onerror=null; this.parentNode.innerHTML='<i class=\'fa-solid fa-user text-xl\'></i>'" class="w-full h-full object-cover" alt="Murdoc">
+                                    </div>
+                                    <div class="font-bold text-xs sm:text-[13px] text-white">Murdoc</div>
+                                    <div class="text-[10px] text-amber-400 font-semibold mt-0.5 px-2.5 py-0.5 rounded-full bg-amber-500/10">Kursi 2</div>
+                                </label>
+
+                                <label class="barber-card relative flex flex-col items-center p-3 bg-slate-900/80 border border-slate-700/80 rounded-xl cursor-pointer hover:border-amber-400/70 transition-all duration-200 group text-center">
+                                    <input type="radio" name="barber" value="Kursi 3 - Noodle" class="absolute top-2.5 right-2.5 accent-amber-500 focus:ring-amber-400">
+                                    <div class="avatar-ring relative w-14 h-14 mb-2 rounded-full overflow-hidden border-2 border-amber-500/40 shadow-md bg-slate-950 flex items-center justify-center text-amber-400 transition-all duration-200">
+                                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTJ6TUAUQk_VEzLGtBAOZqMyJHf8S23v2H7kD0r72jIqg&s=10" onerror="this.onerror=null; this.parentNode.innerHTML='<i class=\'fa-solid fa-user text-xl\'></i>'" class="w-full h-full object-cover" alt="Noodle">
+                                    </div>
+                                    <div class="font-bold text-xs sm:text-[13px] text-white">Noodle</div>
+                                    <div class="text-[10px] text-amber-400 font-semibold mt-0.5 px-2.5 py-0.5 rounded-full bg-amber-500/10">Kursi 3</div>
+                                </label>
+
+                                <label class="barber-card relative flex flex-col items-center p-3 bg-slate-900/80 border border-slate-700/80 rounded-xl cursor-pointer hover:border-amber-400/70 transition-all duration-200 group text-center">
+                                    <input type="radio" name="barber" value="Kursi 4 - Russell" class="absolute top-2.5 right-2.5 accent-amber-500 focus:ring-amber-400">
+                                    <div class="avatar-ring relative w-14 h-14 mb-2 rounded-full overflow-hidden border-2 border-amber-500/40 shadow-md bg-slate-950 flex items-center justify-center text-amber-400 transition-all duration-200">
+                                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTvm3SGUlyj5mue4_aoPvNYPcqmXGgPdccJ5DNuU6Jpnw&s=10" onerror="this.onerror=null; this.parentNode.innerHTML='<i class=\'fa-solid fa-user text-xl\'></i>'" class="w-full h-full object-cover" alt="Russell">
+                                    </div>
+                                    <div class="font-bold text-xs sm:text-[13px] text-white">Russell</div>
+                                    <div class="text-[10px] text-amber-400 font-semibold mt-0.5 px-2.5 py-0.5 rounded-full bg-amber-500/10">Kursi 4</div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <button type="submit" id="submitBtn" class="btn-shimmer w-full py-3.5 rounded-xl font-extrabold tracking-wide bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-slate-950 hover:from-amber-300 hover:to-amber-500 transition-all duration-200 shadow-lg shadow-amber-500/25 active:scale-[0.99] flex items-center justify-center gap-2 text-sm mt-2">
+                            <i class="fa-solid fa-ticket"></i> Ambil Tiket Antrian Sekarang
+                        </button>
+                    </form>
+                </div>
+
+                <div class="lg:col-span-5 space-y-4">
+                    <div id="myTicketCard" class="hidden glass-panel p-5 rounded-2xl border-2 border-amber-500/60 tv-chair-active animate-tab-enter relative overflow-hidden">
+                        <div class="w-5 h-5 rounded-full bg-barber-dark border-r border-amber-500/40 absolute -left-2.5 top-1/2 -translate-y-1/2"></div>
+                        <div class="w-5 h-5 rounded-full bg-barber-dark border-l border-amber-500/40 absolute -right-2.5 top-1/2 -translate-y-1/2"></div>
+
+                        <div class="absolute top-0 right-0 bg-gradient-to-r from-amber-400 to-amber-600 text-slate-950 font-extrabold text-[10px] px-3 py-1 rounded-bl-xl uppercase tracking-wider shadow">E-Ticket</div>
+                        
+                        <div class="text-center pb-3 border-b border-dashed border-slate-600/80">
+                            <span class="text-[10px] font-bold tracking-[0.22em] text-slate-400 uppercase">Nomor Antrian Anda</span>
+                            <div id="ticketNumber" class="text-4xl sm:text-5xl font-extrabold bg-gradient-to-r from-amber-200 via-amber-400 to-amber-500 bg-clip-text text-transparent font-mono tracking-wider my-1.5">A-000</div>
+                            <div id="ticketStatusBadge" class="inline-block px-3 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                MENUNGGU GILIRAN
+                            </div>
+                        </div>
+
+                        <div class="py-3.5 space-y-2.5 text-xs sm:text-[13px]">
+                            <div class="flex justify-between text-slate-400">
+                                <span>Nama Pelanggan</span>
+                                <span id="ticketName" class="font-bold text-white">-</span>
+                            </div>
+                            <div class="flex justify-between text-slate-400">
+                                <span>Layanan</span>
+                                <span id="ticketService" class="font-bold text-white">-</span>
+                            </div>
+                            <div class="flex justify-between text-slate-400">
+                                <span>Barber Pilihan</span>
+                                <span id="ticketBarber" class="font-bold text-amber-400">-</span>
+                            </div>
+                            <div class="flex justify-between text-slate-400">
+                            <span>Antrian Di Depan Anda</span>
+                            <span id="ticketAhead" class="font-extrabold text-amber-400">0 orang</span>
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-t border-dashed border-slate-600/80 text-center">
+                        <div class="bg-white px-3 py-1.5 rounded-lg inline-block my-1 shadow-inner">
+                            <div class="flex gap-1 h-6 items-center justify-center">
+                                <div class="w-1 bg-slate-900 h-full"></div><div class="w-2 bg-slate-900 h-full"></div><div class="w-1 bg-slate-900 h-full"></div><div class="w-3 bg-slate-900 h-full"></div><div class="w-1 bg-slate-900 h-full"></div><div class="w-2 bg-slate-900 h-full"></div><div class="w-1 bg-slate-900 h-full"></div><div class="w-2 bg-slate-900 h-full"></div><div class="w-1 bg-slate-900 h-full"></div>
+                            </div>
+                        </div>
+                        <p class="text-[9px] text-slate-400 uppercase tracking-widest mt-1">Tunjukkan ke kapster saat dipanggil</p>
+                        
+                        <button type="button" onclick="downloadTicketPDF()" class="btn-shimmer mt-3 w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-extrabold text-xs tracking-wide shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-file-invoice"></i> Cetak Invoice
+                        </button>
+
+                        <button onclick="cancelMyTicket()" class="mt-2.5 text-xs text-rose-400 hover:text-rose-300 underline block mx-auto transition">Batalkan Antrian Saya</button>
+                    </div>
+                    </div>
+
+                    <div class="glass-panel p-5 rounded-2xl shadow-xl border border-slate-700/60">
+                        <h4 class="font-bold text-white text-xs uppercase tracking-wider mb-3 border-b border-slate-700/60 pb-2.5 flex items-center justify-between">
+                            <span class="flex items-center gap-1.5">
+                                <i class="fa-solid fa-chart-simple text-amber-400"></i> Informasi Antrian Saat Ini
+                            </span>
+                            <span class="inline-flex items-center gap-1.5 text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> Live
+                            </span>
+                        </h4>
+                        <div class="grid grid-cols-2 gap-3 text-center">
+                            <div class="card-interactive bg-slate-950/70 p-3 rounded-xl border border-slate-800 hover:border-slate-600 relative overflow-hidden">
+                                <div class="text-[11px] text-slate-400 flex items-center justify-center gap-1">
+                                    <i class="fa-solid fa-users text-slate-500"></i> Total Antrian
+                                </div>
+                                <div id="statTotalToday" class="text-2xl font-extrabold font-mono text-white mt-1">0</div>
+                            </div>
+                            <div class="card-interactive bg-slate-950/70 p-3 rounded-xl border border-slate-800 hover:border-amber-500/40 relative overflow-hidden">
+                                <div class="text-[11px] text-slate-400 flex items-center justify-center gap-1">
+                                    <i class="fa-solid fa-hourglass-half text-amber-400/80"></i> Menunggu
+                                </div>
+                                <div id="statWaiting" class="text-2xl font-extrabold font-mono text-amber-400 mt-1">0</div>
+                            </div>
+                            <div class="card-interactive bg-slate-950/70 p-3 rounded-xl border border-slate-800 hover:border-blue-500/40 relative overflow-hidden">
+                                <div class="text-[11px] text-slate-400 flex items-center justify-center gap-1">
+                                    <i class="fa-solid fa-scissors text-blue-400/80"></i> Dilayani
+                                </div>
+                                <div id="statInProgress" class="text-2xl font-extrabold font-mono text-blue-400 mt-1">0</div>
+                            </div>
+                            <div class="card-interactive bg-slate-950/70 p-3 rounded-xl border border-slate-800 hover:border-emerald-500/40 relative overflow-hidden">
+                                <div class="text-[11px] text-slate-400 flex items-center justify-center gap-1">
+                                    <i class="fa-solid fa-circle-check text-emerald-400/80"></i> Selesai
+                                </div>
+                                <div id="statCompleted" class="text-2xl font-extrabold font-mono text-emerald-400 mt-1">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-display" class="tab-content hidden space-y-5">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                <div>
+                    <h2 class="text-xl sm:text-2xl font-bold text-white font-serif tracking-wide">Layar Panggilan Antrian</h2>
+                    <p class="text-xs sm:text-sm text-slate-400">Display Ruang Tunggu Pelanggan</p>
+                </div>
+                <div class="flex items-center gap-2.5">
+                    <div class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 text-xs sm:text-sm font-mono text-amber-400">
+                        <i class="fa-regular fa-clock animate-pulse"></i>
+                        <span id="tvLiveClock">00:00:00</span>
+                    </div>
+                    <button onclick="announceCurrentServing()" class="btn-shimmer px-3.5 py-2 bg-amber-500/20 border border-amber-500/40 text-amber-300 rounded-xl text-xs font-bold hover:bg-amber-500/30 active:scale-95 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-bullhorn"></i> Panggil Ulang Suara
+                    </button>
+                </div>
+            </div>
+
+            <div id="tvActiveChairs" class="grid grid-cols-1 md:grid-cols-4 gap-4"></div>
+
+            <div class="glass-panel p-4 sm:p-5 rounded-2xl">
+                <h3 class="text-sm sm:text-base font-bold text-white mb-3 flex items-center justify-between border-b border-slate-700/60 pb-2.5">
+                    <span class="flex items-center gap-2">
+                        <i class="fa-solid fa-clock text-amber-400"></i> Antrian Berikutnya (Menunggu)
+                    </span>
+                    <span id="tvWaitingCount" class="text-xs font-bold px-3 py-0.5 bg-slate-800 rounded-full text-amber-400">0 Antrian</span>
+                </h3>
+
+                <div id="tvWaitingList" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5"></div>
+            </div>
+        </section>
+
+        <section id="view-admin" class="tab-content hidden space-y-5">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                <div>
+                    <h2 class="text-xl sm:text-2xl font-bold text-white font-serif tracking-wide">Panel Kendali Kapster</h2>
+                    <p class="text-xs sm:text-sm text-slate-400">Kelola panggilan antrian & status pengerjaan cukur</p>
+                </div>
+                <div class="flex items-center gap-2 bg-slate-800 p-1.5 rounded-xl border border-slate-700">
+                    <span class="text-xs text-slate-400 pl-2">Saya Kapster:</span>
+                    <select id="activeBarberSelect" onchange="renderAdminPanel()" class="bg-slate-900 border border-slate-700 text-amber-400 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-bold focus:outline-none">
+                        <option value="Kursi 1 - 2-D">Kursi 1 - 2-D</option>
+                        <option value="Kursi 2 - Murdoc">Kursi 2 - Murdoc</option>
+                        <option value="Kursi 3 - Noodle">Kursi 3 - Noodle</option>
+                        <option value="Kursi 4 - Russell">Kursi 4 - Russell</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div class="lg:col-span-1 glass-panel p-4 sm:p-5 rounded-2xl border border-amber-500/30 flex flex-col justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold text-amber-400 uppercase tracking-widest">Aksi Utama</span>
+                        <h3 class="text-base font-bold text-white mt-0.5 mb-1.5">Panggil Pelanggan</h3>
+                        <p class="text-xs text-slate-400 mb-3">Sistem akan otomatis mengambil antrian berikutnya yang paling awal sesuai giliran.</p>
+                    </div>
+
+                    <button onclick="callNextCustomer()" class="btn-shimmer w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-slate-950 font-extrabold text-sm shadow-lg shadow-emerald-500/20 hover:from-emerald-400 hover:to-emerald-500 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-bell text-base animate-bounce"></i> Panggil Antrian Berikutnya
+                    </button>
+                </div>
+
+                <div class="lg:col-span-2 glass-panel p-4 sm:p-5 rounded-2xl">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Pelanggan Di Kursi Anda Saat Ini</span>
+                        <span id="adminCuttingAnimBadge" class="hidden inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[10px] font-semibold">
+                            <i class="fa-solid fa-scissors clipper-buzz"></i> Sedang Mencukur
+                        </span>
+                    </div>
+                    
+                    <div id="myChairCurrentContainer" class="mt-2.5 p-3.5 rounded-xl bg-slate-900/90 border border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <div class="text-center sm:text-left">
+                            <span class="text-[10px] text-slate-400 uppercase tracking-wider block">Nomor Antrian:</span>
+                            <div id="myChairNo" class="text-2xl sm:text-3xl font-extrabold text-amber-400 font-mono">Tidak Ada</div>
+                            <div id="myChairCustName" class="text-xs sm:text-sm font-bold text-white mt-0.5">Silakan Panggil Antrian</div>
+                            <div id="myChairService" class="text-xs text-slate-400 mt-0.5">-</div>
+                        </div>
+
+                        <div class="flex flex-wrap sm:flex-col gap-1.5 w-full sm:w-auto">
+                            <button onclick="updateStatusFromAdmin('IN_PROGRESS')" class="flex-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-play"></i> Mulai Cukur
+                            </button>
+                            <button onclick="updateStatusFromAdmin('COMPLETED')" class="flex-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-check"></i> Selesai
+                            </button>
+                            <button onclick="updateStatusFromAdmin('CANCELLED')" class="flex-1 px-3 py-1.5 bg-rose-600/80 hover:bg-rose-600 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-xmark"></i> Batal
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel p-4 sm:p-5 rounded-2xl border border-slate-700/50">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-amber-400"></i> Daftar Semua Antrian Hari Ini
+                    </h3>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="lockAdminPanel()" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 font-bold rounded-xl text-xs transition flex items-center gap-1.5 shadow-md" title="Kunci Kembali Panel Admin">
+                            <i class="fa-solid fa-lock"></i> Kunci Panel
+                        </button>
+                        <button type="button" onclick="resetQueueToday()" class="px-3.5 py-1.5 bg-rose-600/80 hover:bg-rose-600 text-white font-bold rounded-xl text-xs transition flex items-center gap-1.5 shadow-md">
+                            <i class="fa-solid fa-rotate-right"></i> Reset Antrian Hari Ini
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-900/90 text-slate-400 uppercase tracking-wider text-[10px] border-b border-slate-700">
+                            <tr>
+                                <th class="p-2.5">No. Antrian</th>
+                                <th class="p-2.5">Nama</th>
+                                <th class="p-2.5">WhatsApp</th>
+                                <th class="p-2.5">Layanan</th>
+                                <th class="p-2.5">Kapster</th>
+                                <th class="p-2.5">Waktu</th>
+                                <th class="p-2.5">Status</th>
+                                <th class="p-2.5 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminTableBody" class="divide-y divide-slate-800 text-slate-200"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-contact" class="tab-content hidden space-y-5">
+            <div class="border-b border-slate-800 pb-3">
+                <h2 class="text-lg sm:text-xl font-bold text-white font-serif">Kontak & Lokasi Barber</h2>
+                <p class="text-xs text-slate-400">Informasi alamat, nomor telepon, dan surat elektronik resmi Sanctuary Cut Co.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="card-interactive glass-panel p-5 rounded-2xl border border-slate-700/80 hover:border-amber-500/40 flex flex-col items-center text-center space-y-3">
+                    <div class="animate-float-slow w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-xl shadow-inner">
+                        <i class="fa-solid fa-location-dot"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xs font-bold uppercase tracking-widest text-slate-400">Lokasi / Alamat</h3>
+                        <p class="text-xs sm:text-sm text-white font-medium mt-2 leading-relaxed">
+                            Jl. Pegangsaan 1 No. 666, Cikarang, Bekasi, Jawa barat, 1998
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card-interactive glass-panel p-5 rounded-2xl border border-slate-700/80 hover:border-emerald-500/40 flex flex-col items-center text-center space-y-3">
+                    <div class="animate-float-slow w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-xl shadow-inner" style="animation-delay: -1.5s;">
+                        <i class="fa-solid fa-phone-volume"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xs font-bold uppercase tracking-widest text-slate-400">Nomor Telepon</h3>
+                        <p class="text-xs sm:text-sm text-white font-medium mt-2 leading-relaxed">
+                            08999666188
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card-interactive glass-panel p-5 rounded-2xl border border-slate-700/80 hover:border-blue-500/40 flex flex-col items-center text-center space-y-3">
+                    <div class="animate-float-slow w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 text-xl shadow-inner" style="animation-delay: -3s;">
+                        <i class="fa-solid fa-envelope"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xs font-bold uppercase tracking-widest text-slate-400">Email Resmi</h3>
+                        <p class="text-xs sm:text-sm text-white font-medium mt-2 leading-relaxed">
+                            gundulbarber@gmail.com
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel p-5 rounded-2xl border border-slate-700/80 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg shrink-0">
+                        <i class="fa-solid fa-clock"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-white">Jam Operasional Layanan</h4>
+                        <p class="text-xs text-slate-400 mt-0.5">Buka Setiap Hari: 09:00 - 21:00 WIB</p>
+                    </div>
+                </div>
+                <div class="px-4 py-2 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-400 font-semibold text-xs">
+                    Sanctuary Cut Co. Official
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="border-t border-slate-800 bg-black py-4 mt-auto text-center text-xs text-slate-500">
+        <p>&copy; 2026 Sanctuary Cut Co. All rights reserved.</p>
+    </footer>
+
+    <!-- Modal Verifikasi PIN Kapster / Admin -->
+    <div id="adminPinModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md hidden" style="z-index: 99999;">
+        <div class="glass-panel max-w-xs w-full p-6 rounded-2xl border border-amber-500/40 shadow-2xl relative space-y-4 text-center animate-tab-enter">
+            <button onclick="closePinModal()" class="absolute top-3.5 right-3.5 text-slate-400 hover:text-white text-base">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 text-xl mx-auto shadow-inner">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <div>
+                <h3 class="font-serif text-base font-bold text-white">Akses Terkunci</h3>
+                <p class="text-[11px] text-slate-400 mt-1">Masukkan PIN khusus Kapster / Pemilik untuk membuka panel kendali.</p>
+            </div>
+            <form onsubmit="verifyAdminPin(event)" class="space-y-3">
+                <input type="password" id="adminPinInput" inputmode="numeric" maxlength="8" required placeholder="••••" class="w-full bg-slate-950/90 border border-slate-700 rounded-xl px-4 py-3 text-center text-lg font-extrabold tracking-[0.5em] text-amber-400 placeholder-slate-600 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400">
+                <button type="submit" class="btn-shimmer w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-slate-950 font-extrabold text-xs tracking-wide shadow-lg shadow-amber-500/20 hover:from-amber-300 hover:to-amber-500 transition">
+                    <i class="fa-solid fa-unlock mr-1"></i> Buka Panel Kapster
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbzUhQnAf7QLSuIqTYOm0euQRngKJfjiHSnpQhLzSz89TX9mfEsvXqWMBN7hU8JEa3c2/exec';
+        const DEFAULT_ADMIN_PIN = '1998';
+
+        const CODE_GS_CONTENT = `// ==========================================
+// CODE.GS - SANCTUARY CUT CO. GOOGLE APPS SCRIPT
+// ==========================================
+
+const SHEET_NAME = 'Antrian_Hari_Ini';
+
+function doGet(e) {
+  if (e && e.parameter && e.parameter.action === 'getQueueData') {
+    return ContentService.createTextOutput(getQueueData())
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  if (e && e.parameter && e.parameter.action === 'registerQueue') {
+    try {
+      const data = JSON.parse(e.parameter.data);
+      const res = registerQueue(data);
+      return ContentService.createTextOutput(res).setMimeType(ContentService.MimeType.JSON);
+    } catch(err) {
+      return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() })).setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
+  if (e && e.parameter && e.parameter.action === 'updateQueueStatus') {
+    try {
+      let id = e.parameter.id;
+      let status = e.parameter.status;
+      let barber = e.parameter.barber;
+      if (e.parameter.data) {
+        const d = JSON.parse(e.parameter.data);
+        id = id || d.id;
+        status = status || d.status;
+        barber = barber || d.barber;
+      }
+      const res = updateQueueStatus(id, status, barber);
+      return ContentService.createTextOutput(res).setMimeType(ContentService.MimeType.JSON);
+    } catch(err) {
+      return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() })).setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
+  if (e && e.parameter && e.parameter.action === 'resetQueueToday') {
+    try {
+      const res = resetQueueToday();
+      return ContentService.createTextOutput(res).setMimeType(ContentService.MimeType.JSON);
+    } catch(err) {
+      return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() })).setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+  
+  return HtmlService.createTemplateFromFile('index')
+    .evaluate()
+    .setTitle('Sanctuary Cut Co. - Smart Queue System')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1.0')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function doPost(e) {
+  try {
+    let data = {};
+    if (e.postData && e.postData.contents) {
+      data = JSON.parse(e.postData.contents);
+    }
+    const action = e.parameter.action || data.action;
+    let result = { success: false };
+
+    if (action === 'registerQueue') {
+      result = JSON.parse(registerQueue(data));
+    } else if (action === 'updateQueueStatus') {
+      result = JSON.parse(updateQueueStatus(data.id, data.status, data.barber));
+    } else if (action === 'resetQueueToday') {
+      result = JSON.parse(resetQueueToday());
+    }
+
+    return ContentService.createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function getSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_NAME);
+    sheet.appendRow([
+      'ID', 'Tanggal', 'No Antrian', 'Nama Pelanggan', 'No HP', 
+      'Layanan', 'Harga', 'Kapster', 'Status', 'Waktu Daftar', 'Waktu Mulai', 'Waktu Selesai'
+    ]);
+    sheet.getRange(1, 1, 1, 12).setFontWeight('bold').setBackground('#0f172a').setFontColor('#f59e0b');
+    sheet.getRange('G:G').setNumberFormat('#,##0');
+  }
+  return sheet;
+}
+
+function getServicePrice(serviceName) {
+  const s = String(serviceName || '').toLowerCase();
+  if (s.includes('beard')) return 20000;
+  if (s.includes('vip')) return 70000;
+  if (s.includes('color') || s.includes('dye')) return 75000;
+  return 45000;
+}
+
+function getQueueData() {
+  const sheet = getSheet();
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return JSON.stringify([]);
+  
+  const tz = Session.getScriptTimeZone();
+  const todayStr = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+  const result = [];
+  
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (!row[0] && !row[2]) continue;
+
+    let rowDateStr = '';
+    if (row[1] instanceof Date) {
+      rowDateStr = Utilities.formatDate(row[1], tz, 'yyyy-MM-dd');
+    } else {
+      rowDateStr = String(row[1] || '').trim().split('T')[0];
+    }
+    
+    if (rowDateStr === todayStr) {
+      let rawBarber = String(row[7] || '2-D');
+      let fullBarberName = rawBarber;
+      if (rawBarber === '2-D') fullBarberName = 'Kursi 1 - 2-D';
+      else if (rawBarber === 'Murdoc') fullBarberName = 'Kursi 2 - Murdoc';
+      else if (rawBarber === 'Noodle') fullBarberName = 'Kursi 3 - Noodle';
+      else if (rawBarber === 'Russell') fullBarberName = 'Kursi 4 - Russell';
+
+      result.push({
+        id: String(row[0]),
+        date: rowDateStr,
+        queueNo: String(row[2] || '').trim(),
+        name: row[3],
+        phone: String(row[4]),
+        service: row[5],
+        price: Number(row[6]) || getServicePrice(row[5]),
+        barber: fullBarberName,
+        status: row[8],
+        timeAdded: row[9],
+        timeStart: row[10],
+        timeEnd: row[11]
+      });
+    }
+  }
+  return JSON.stringify(result);
+}
+
+function registerQueue(formData) {
+  const sheet = getSheet();
+  const tz = Session.getScriptTimeZone();
+  const todayStr = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+  const timeStr = Utilities.formatDate(new Date(), tz, 'HH:mm:ss');
+  
+  const data = sheet.getDataRange().getValues();
+  const prefix = (formData.service || '').toLowerCase().includes('vip') ? 'V' : 'A';
+  
+  let maxNum = 0;
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    let rowDateStr = '';
+    if (row[1] instanceof Date) {
+      rowDateStr = Utilities.formatDate(row[1], tz, 'yyyy-MM-dd');
+    } else {
+      rowDateStr = String(row[1] || '').trim().split('T')[0];
+    }
+
+    if (rowDateStr === todayStr) {
+      const qNo = String(row[2] || '').trim().toUpperCase();
+      if (qNo.startsWith(prefix + '-')) {
+        const numPart = parseInt(qNo.split('-')[1], 10);
+        if (!isNaN(numPart) && numPart > maxNum) {
+          maxNum = numPart;
+        }
+      }
+    }
+  }
+
+  const nextNum = maxNum + 1;
+  const queueNo = prefix + '-' + String(nextNum).padStart(3, '0');
+  const id = formData.id || ('Q-' + Date.now());
+  
+  let rawPhone = String(formData.phone || '').trim();
+  const formattedPhone = rawPhone.startsWith("'") ? rawPhone : "'" + rawPhone;
+
+  const servicePrice = Number(formData.price) || getServicePrice(formData.service);
+
+  let cleanBarber = formData.barber || '2-D';
+  if (cleanBarber.includes('2-D')) cleanBarber = '2-D';
+  else if (cleanBarber.includes('Murdoc')) cleanBarber = 'Murdoc';
+  else if (cleanBarber.includes('Noodle')) cleanBarber = 'Noodle';
+  else if (cleanBarber.includes('Russell')) cleanBarber = 'Russell';
+
+  sheet.appendRow([
+    id,
+    "'" + todayStr,
+    queueNo,
+    formData.name,
+    formattedPhone,
+    formData.service,
+    servicePrice,
+    cleanBarber,
+    formData.status || 'WAITING',
+    "'" + (formData.timeAdded || timeStr),
+    formData.timeStart ? "'" + formData.timeStart : '',
+    formData.timeEnd ? "'" + formData.timeEnd : ''
+  ]);
+  
+  return JSON.stringify({ success: true, queueNo: queueNo, id: id });
+}
+
+function updateQueueStatus(id, newStatus, barberName) {
+  const sheet = getSheet();
+  const data = sheet.getDataRange().getValues();
+  const timeStr = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'HH:mm:ss');
+  
+  let cleanBarber = barberName || '';
+  if (cleanBarber.includes('2-D')) cleanBarber = '2-D';
+  else if (cleanBarber.includes('Murdoc')) cleanBarber = 'Murdoc';
+  else if (cleanBarber.includes('Noodle')) cleanBarber = 'Noodle';
+  else if (cleanBarber.includes('Russell')) cleanBarber = 'Russell';
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(id)) {
+      const rowNum = i + 1;
+      sheet.getRange(rowNum, 9).setValue(newStatus);
+      if (cleanBarber) sheet.getRange(rowNum, 8).setValue(cleanBarber);
+      
+      if (newStatus === 'IN_PROGRESS') {
+        sheet.getRange(rowNum, 11).setValue("'" + timeStr);
+      } else if (newStatus === 'COMPLETED' || newStatus === 'CANCELLED') {
+        sheet.getRange(rowNum, 12).setValue("'" + timeStr);
+      }
+      return JSON.stringify({ success: true });
+    }
+  }
+  return JSON.stringify({ success: false, message: 'ID tidak ditemukan' });
+}
+
+function resetQueueToday() {
+  const sheet = getSheet();
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) {
+    return JSON.stringify({ success: true, deletedCount: 0 });
+  }
+
+  const tz = Session.getScriptTimeZone();
+  const todayStr = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+  let deletedCount = 0;
+
+  for (let i = data.length - 1; i >= 1; i--) {
+    const row = data[i];
+    let rowDateStr = '';
+    if (row[1] instanceof Date) {
+      rowDateStr = Utilities.formatDate(row[1], tz, 'yyyy-MM-dd');
+    } else {
+      rowDateStr = String(row[1] || '').trim().split('T')[0].replace(/^'/, '');
+    }
+
+    if (rowDateStr === todayStr) {
+      sheet.deleteRow(i + 1);
+      deletedCount++;
+    }
+  }
+
+  return JSON.stringify({ success: true, deletedCount: deletedCount });
+}`;
+
+        // Sumber data terpusat layanan & kapster/kursi agar selalu selaras di form, antrian, TV, dan struk PDF
+        const SERVICE_CATALOG = [
+            { value: 'Haircut Regular', price: 45000 },
+            { value: 'Beard Trim & Grooming', price: 20000 },
+            { value: 'Gentleman VIP Package', price: 70000 },
+            { value: 'Hair Color / Dye', price: 75000 }
+        ];
+
+        const BARBER_CHAIRS = [
+            { id: 1, name: 'Kursi 1 - 2-D', shortName: '2-D' },
+            { id: 2, name: 'Kursi 2 - Murdoc', shortName: 'Murdoc' },
+            { id: 3, name: 'Kursi 3 - Noodle', shortName: 'Noodle' },
+            { id: 4, name: 'Kursi 4 - Russell', shortName: 'Russell' }
+        ];
+
+        function resolveServicePrice(serviceName, explicitPrice) {
+            const parsed = Number(explicitPrice);
+            if (!isNaN(parsed) && parsed > 0) return parsed;
+            const matched = SERVICE_CATALOG.find(s => s.value.toLowerCase() === String(serviceName || '').trim().toLowerCase());
+            if (matched) return matched.price;
+            const s = String(serviceName || '').toLowerCase();
+            if (s.includes('beard')) return 20000;
+            if (s.includes('vip')) return 70000;
+            if (s.includes('color') || s.includes('dye')) return 75000;
+            return 45000;
+        }
+
+        function normalizeBarberChair(barberVal) {
+            const raw = String(barberVal || '').trim();
+            const exact = BARBER_CHAIRS.find(c => c.name === raw || c.shortName.toLowerCase() === raw.toLowerCase());
+            if (exact) return exact.name;
+            const partial = BARBER_CHAIRS.find(c => raw.toLowerCase().includes(c.shortName.toLowerCase()));
+            return partial ? partial.name : BARBER_CHAIRS[0].name;
+        }
+
+        const isGasEnv = typeof google !== 'undefined' && google.script && google.script.run;
+
+        const state = {
+            queues: [],
+            myTicketId: null,
+            gasUrl: DEFAULT_GAS_URL.includes('GANTI_DENGAN_ID') ? '' : DEFAULT_GAS_URL,
+            soundEnabled: true,
+            adminPin: DEFAULT_ADMIN_PIN,
+            isAdminUnlocked: false
+        };
+
+        function getTodayString() {
+            const now = new Date();
+            const parts = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Jakarta',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).formatToParts(now);
+            const y = parts.find(p => p.type === 'year')?.value || '1970';
+            const m = parts.find(p => p.type === 'month')?.value || '01';
+            const d = parts.find(p => p.type === 'day')?.value || '01';
+            return `${y}-${m}-${d}`;
+        }
+
+        function getWIBHour() {
+            const now = new Date();
+            const hourStr = new Intl.DateTimeFormat('en-GB', {
+                timeZone: 'Asia/Jakarta',
+                hour: '2-digit',
+                hour12: false
+            }).format(now);
+            return parseInt(hourStr, 10);
+        }
+
+        function isShopOpen() {
+            const hour = getWIBHour();
+            return hour >= 9 && hour < 21;
+        }
+
+        function updateShopStatusUI() {
+            const open = isShopOpen();
+            const badge = document.getElementById('shopStatusBadge');
+            const badgeMob = document.getElementById('shopStatusBadgeMobile');
+            const text = document.getElementById('shopStatusText');
+
+            if (open) {
+                if (text) text.innerText = 'Buka';
+                if (badge) badge.className = 'px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold uppercase tracking-wider';
+                if (badgeMob) {
+                    badgeMob.innerText = 'Buka';
+                    badgeMob.className = 'px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[9px] font-bold uppercase';
+                }
+            } else {
+                if (text) text.innerText = 'Tutup';
+                if (badge) badge.className = 'px-2 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-[10px] font-bold uppercase tracking-wider';
+                if (badgeMob) {
+                    badgeMob.innerText = 'Tutup';
+                    badgeMob.className = 'px-1.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-[9px] font-bold uppercase';
+                }
+            }
+        }
+
+        function updateTVClock() {
+            const clockEl = document.getElementById('tvLiveClock');
+            if (clockEl) {
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                clockEl.innerText = `${hours}:${minutes}:${seconds}`;
+            }
+        }
+
+        window.onload = function() {
+            const savedUrl = localStorage.getItem('barber_gas_url');
+            if (savedUrl) {
+                state.gasUrl = savedUrl;
+            }
+
+            if (sessionStorage.getItem('barber_admin_unlocked') === 'true') {
+                state.isAdminUnlocked = true;
+            }
+
+            const savedTicket = localStorage.getItem('barber_my_ticket');
+            if (savedTicket) state.myTicketId = savedTicket;
+
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.getVoices();
+                if (window.speechSynthesis.onvoiceschanged !== undefined) {
+                    window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+                }
+            }
+
+            const unlockHandler = function() {
+                unlockAudio();
+                document.removeEventListener('click', unlockHandler);
+                document.removeEventListener('touchstart', unlockHandler);
+            };
+            document.addEventListener('click', unlockHandler);
+            document.addEventListener('touchstart', unlockHandler);
+
+            updateShopStatusUI();
+            updateTVClock();
+            renderAll();
+            fetchLatestQueue();
+            setInterval(fetchLatestQueue, 4000);
+            setInterval(updateShopStatusUI, 10000);
+            setInterval(updateTVClock, 1000);
+        };
+
+        function switchTab(tabName) {
+            if (tabName === 'admin' && !state.isAdminUnlocked) {
+                openPinModal();
+                return;
+            }
+
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.classList.add('hidden');
+                el.classList.remove('animate-tab-enter');
+            });
+            const targetView = document.getElementById(`view-${tabName}`);
+            if (targetView) {
+                targetView.classList.remove('hidden');
+                void targetView.offsetWidth;
+                targetView.classList.add('animate-tab-enter');
+            }
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('text-amber-400', 'border-amber-400', 'font-bold');
+                btn.classList.add('text-slate-400', 'border-transparent', 'font-medium');
+            });
+            const activeBtn = document.getElementById(`tab-btn-${tabName}`);
+            if (activeBtn) {
+                activeBtn.classList.add('text-amber-400', 'border-amber-400', 'font-bold');
+                activeBtn.classList.remove('text-slate-400', 'border-transparent', 'font-medium');
+            }
+        }
+
+        function openPinModal() {
+            const modal = document.getElementById('adminPinModal');
+            const input = document.getElementById('adminPinInput');
+            if (modal) {
+                modal.classList.remove('hidden');
+                if (input) {
+                    input.value = '';
+                    setTimeout(() => input.focus(), 100);
+                }
+            }
+        }
+
+        function closePinModal() {
+            const modal = document.getElementById('adminPinModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function verifyAdminPin(e) {
+            e.preventDefault();
+            const input = document.getElementById('adminPinInput');
+            const enteredPin = input ? input.value.trim() : '';
+
+            if (enteredPin === state.adminPin) {
+                state.isAdminUnlocked = true;
+                sessionStorage.setItem('barber_admin_unlocked', 'true');
+                closePinModal();
+                showToast('PIN benar! Selamat datang di Panel Kapster.', 'success');
+                switchTab('admin');
+            } else {
+                showToast('PIN salah! Akses ke panel kapster ditolak.', 'error');
+                if (input) {
+                    input.value = '';
+                    input.focus();
+                }
+            }
+        }
+
+        function lockAdminPanel() {
+            state.isAdminUnlocked = false;
+            sessionStorage.removeItem('barber_admin_unlocked');
+            showToast('Panel Kapster telah dikunci kembali.', 'info');
+            switchTab('customer');
+        }
+
+        function handleRegisterQueue(e) {
+            e.preventDefault();
+
+            if (!isShopOpen()) {
+                showToast('Maaf! Pendaftaran antrian sedang TUTUP.', 'error');
+                updateShopStatusUI();
+                return;
+            }
+
+            const name = document.getElementById('custName').value.trim();
+            const phone = document.getElementById('custPhone').value.trim();
+            
+            if (phone.length < 10 || phone.length > 13) {
+                showToast('Nomor WhatsApp harus terdiri dari 10 hingga 13 digit!', 'error');
+                return;
+            }
+
+            const serviceEl = document.querySelector('input[name="service"]:checked');
+            const service = serviceEl ? serviceEl.value : SERVICE_CATALOG[0].value;
+            const price = resolveServicePrice(service, serviceEl ? serviceEl.getAttribute('data-price') : null);
+            const chosenBarberOption = normalizeBarberChair(document.querySelector('input[name="barber"]:checked').value);
+
+            if (!name || !phone) {
+                showToast('Mohon lengkapi nama dan nomor WhatsApp Anda.', 'error');
+                return;
+            }
+
+            const prefix = service.toLowerCase().includes('vip') ? 'V' : 'A';
+            let maxNum = 0;
+            state.queues.forEach(item => {
+                const qNo = String(item.queueNo || '').trim().toUpperCase();
+                if (qNo.startsWith(prefix + '-')) {
+                    const numPart = parseInt(qNo.split('-')[1], 10);
+                    if (!isNaN(numPart) && numPart > maxNum) {
+                        maxNum = numPart;
+                    }
+                }
+            });
+            const count = maxNum + 1;
+            const queueNo = prefix + '-' + String(count).padStart(3, '0');
+            const newId = 'Q-' + Date.now();
+            const now = new Date();
+            const timeAdded = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
+
+            let assignedBarber = chosenBarberOption;
+            let initialStatus = 'WAITING';
+            let timeStart = '';
+
+            const isChairOccupied = state.queues.some(q => q.status === 'IN_PROGRESS' && q.barber === assignedBarber);
+
+            if (!isChairOccupied) {
+                initialStatus = 'IN_PROGRESS';
+                timeStart = timeAdded;
+            } else {
+                initialStatus = 'WAITING';
+            }
+
+            const newItem = {
+                id: newId,
+                date: getTodayString(),
+                queueNo: queueNo,
+                name: name,
+                phone: phone,
+                service: service,
+                price: price,
+                barber: assignedBarber,
+                status: initialStatus,
+                timeAdded: timeAdded,
+                timeStart: timeStart,
+                timeEnd: ''
+            };
+
+            state.queues.push(newItem);
+            state.myTicketId = newId;
+            localStorage.setItem('barber_my_ticket', newId);
+
+            sendToGas('registerQueue', newItem);
+            renderAll();
+
+            if (initialStatus === 'IN_PROGRESS') {
+                showToast(`🎉 Kursi ${assignedBarber} KOSONG! ${queueNo} (${name}) langsung siap dilayani!`, 'success');
+                announceCall(queueNo, name, assignedBarber);
+            } else {
+                showToast(`Nomor antrian ${queueNo} berhasil didaftarkan ke ${assignedBarber}.`, 'success');
+            }
+
+            document.getElementById('queueForm').reset();
+            const defaultBarberInput = document.querySelector(`input[name="barber"][value="${assignedBarber}"]`);
+            if (defaultBarberInput) defaultBarberInput.checked = true;
+        }
+
+        function sendToGas(action, payload = {}) {
+            if (isGasEnv) {
+                if (action === 'registerQueue') {
+                    google.script.run.withSuccessHandler(resStr => {
+                        try {
+                            const res = JSON.parse(resStr);
+                            if (res && res.success && res.queueNo) {
+                                const localItem = state.queues.find(q => q.id === payload.id);
+                                if (localItem) localItem.queueNo = res.queueNo;
+                                renderAll();
+                            }
+                        } catch (e) {}
+                        fetchLatestQueue();
+                    }).registerQueue(payload);
+                } else if (action === 'updateQueueStatus') {
+                    google.script.run.withSuccessHandler(() => fetchLatestQueue()).updateQueueStatus(payload.id, payload.status, payload.barber);
+                } else if (action === 'resetQueueToday') {
+                    if (typeof google.script.run.resetQueueToday === 'function') {
+                        google.script.run.withSuccessHandler(() => fetchLatestQueue()).resetQueueToday();
+                    }
+                }
+                return;
+            }
+
+            if (!state.gasUrl) return;
+            const encodedData = encodeURIComponent(JSON.stringify(payload));
+            let queryParams = `action=${action}&data=${encodedData}`;
+            if (payload && payload.id) queryParams += `&id=${encodeURIComponent(payload.id)}`;
+            if (payload && payload.status) queryParams += `&status=${encodeURIComponent(payload.status)}`;
+            if (payload && payload.barber) queryParams += `&barber=${encodeURIComponent(payload.barber)}`;
+
+            fetch(`${state.gasUrl}?${queryParams}`, { mode: 'no-cors' })
+                .then(() => setTimeout(fetchLatestQueue, 1200))
+                .catch(err => console.error('GAS Sync error:', err));
+        }
+
+        function cancelMyTicket() {
+            if (!state.myTicketId) return;
+            const item = state.queues.find(q => q.id === state.myTicketId);
+            if (item) {
+                item.status = 'CANCELLED';
+                sendToGas('updateQueueStatus', { id: item.id, status: 'CANCELLED', barber: item.barber });
+            }
+            state.myTicketId = null;
+            localStorage.removeItem('barber_my_ticket');
+            showToast('Antrian Anda telah dibatalkan.', 'info');
+            renderAll();
+        }
+
+        function downloadTicketPDF() {
+            if (!state.myTicketId) {
+                showToast('Tiket antrian tidak ditemukan.', 'error');
+                return;
+            }
+
+            const item = state.queues.find(q => q.id === state.myTicketId);
+            if (!item) {
+                showToast('Data antrian tidak ditemukan.', 'error');
+                return;
+            }
+
+            if (!window.jspdf || !window.jspdf.jsPDF) {
+                showToast('Library PDF sedang dimuat, silakan coba beberapa detik lagi.', 'error');
+                return;
+            }
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: [80, 152]
+                });
+
+                const centerX = 40;
+                const leftMargin = 5;
+                const rightMargin = 75;
+                let y = 9;
+
+                const drawDashedLine = (yPos) => {
+                    doc.setFont('courier', 'normal');
+                    doc.setFontSize(8);
+                    doc.text('------------------------------------------', centerX, yPos, { align: 'center' });
+                };
+
+                doc.setFont('courier', 'bold');
+                doc.setFontSize(12);
+                doc.text('SANCTUARY CUT CO.', centerX, y, { align: 'center' });
+                y += 4.2;
+
+                doc.setFont('courier', 'normal');
+                doc.setFontSize(7.5);
+                doc.text('Jl. Pegangsaan 1 No. 666, Cikarang', centerX, y, { align: 'center' });
+                y += 3.5;
+                doc.text('Bekasi, Jawa Barat 1998', centerX, y, { align: 'center' });
+                y += 3.5;
+                doc.text('Telp/WA: 08999666188', centerX, y, { align: 'center' });
+                y += 4.5;
+
+                drawDashedLine(y);
+                y += 4.5;
+
+                doc.setFont('courier', 'normal');
+                doc.setFontSize(7.5);
+                const invNo = 'INV-' + String(item.id).replace('Q-', '').slice(-8);
+                doc.text(`No. Struk : ${invNo}`, leftMargin, y);
+                y += 3.8;
+                doc.text(`Tanggal   : ${item.date || getTodayString()} ${item.timeAdded || ''}`, leftMargin, y);
+                y += 3.8;
+                doc.text(`Pelanggan : ${String(item.name || '-').substring(0, 22)}`, leftMargin, y);
+                y += 3.8;
+                doc.text(`No. WA    : ${item.phone || '-'}`, leftMargin, y);
+                y += 3.8;
+                doc.text(`Kapster   : ${item.barber || '-'}`, leftMargin, y);
+                y += 4.5;
+
+                drawDashedLine(y);
+                y += 5;
+
+                doc.setFont('courier', 'bold');
+                doc.setFontSize(8.5);
+                doc.text('NOMOR ANTRIAN ANDA', centerX, y, { align: 'center' });
+                y += 7.5;
+
+                doc.setFontSize(22);
+                doc.text(String(item.queueNo || 'A-000'), centerX, y, { align: 'center' });
+                y += 5;
+
+                drawDashedLine(y);
+                y += 4.5;
+
+                doc.setFont('courier', 'bold');
+                doc.setFontSize(8);
+                doc.text('RINCIAN LAYANAN', leftMargin, y);
+                doc.text('HARGA', rightMargin, y, { align: 'right' });
+                y += 4.5;
+
+                doc.setFont('courier', 'normal');
+                doc.setFontSize(8);
+                const priceNum = resolveServicePrice(item.service, item.price);
+                const formattedPrice = 'Rp ' + priceNum.toLocaleString('id-ID');
+                const serviceLabel = String(item.service || 'Haircut Regular').substring(0, 24);
+
+                doc.text(serviceLabel, leftMargin, y);
+                doc.text(formattedPrice, rightMargin, y, { align: 'right' });
+                y += 3.8;
+                doc.setFontSize(7);
+                doc.text(`  1 x ${formattedPrice}`, leftMargin, y);
+                y += 4.5;
+
+                drawDashedLine(y);
+                y += 4.5;
+
+                doc.setFont('courier', 'bold');
+                doc.setFontSize(9.5);
+                doc.text('TOTAL TAGIHAN', leftMargin, y);
+                doc.text(formattedPrice, rightMargin, y, { align: 'right' });
+                y += 4.5;
+
+                doc.setFont('courier', 'normal');
+                doc.setFontSize(7.5);
+                const statusLabel = item.status === 'COMPLETED' ? 'LUNAS / SELESAI' : 'TAGIHAN ANTRIAN (BAYAR DI KASIR)';
+                doc.text(`Status: ${statusLabel}`, leftMargin, y);
+                y += 4.5;
+
+                drawDashedLine(y);
+                y += 4.5;
+
+                const bars = [1.2, 0.5, 1.5, 0.6, 0.8, 1.4, 0.5, 1.1, 0.7, 1.5, 0.5, 0.9, 1.3, 0.6, 1.0, 0.5, 1.4, 0.7, 0.8, 1.2, 0.5, 1.1];
+                const totalBarWidth = bars.reduce((acc, w) => acc + w + 0.7, 0);
+                let barX = (80 - totalBarWidth) / 2;
+                doc.setFillColor(15, 23, 42);
+                bars.forEach((w, idx) => {
+                    if (idx % 2 === 0) {
+                        doc.rect(barX, y, w, 8, 'F');
+                    }
+                    barX += w + 0.7;
+                });
+                y += 11.5;
+
+                doc.setFont('courier', 'normal');
+                doc.setFontSize(7);
+                doc.text(`*${item.id}*`, centerX, y, { align: 'center' });
+                y += 4.5;
+
+                doc.setFont('courier', 'bold');
+                doc.setFontSize(7.5);
+                doc.text('TERIMA KASIH ATAS KUNJUNGAN ANDA', centerX, y, { align: 'center' });
+                y += 3.5;
+                doc.setFont('courier', 'normal');
+                doc.setFontSize(7);
+                doc.text('Simpan struk ini sebagai bukti antrian', centerX, y, { align: 'center' });
+                y += 3.2;
+                doc.text('& invoice resmi Sanctuary Cut Co.', centerX, y, { align: 'center' });
+
+                doc.save(`Invoice_${item.queueNo}_${item.name.replace(/\s+/g, '_')}.pdf`);
+                showToast(`Struk PDF ${item.queueNo} berhasil diunduh!`, 'success');
+            } catch (err) {
+                console.error('PDF Error:', err);
+                showToast('Gagal membuat PDF struk.', 'error');
+            }
+        }
+
+        function callNextCustomer() {
+            const activeBarber = document.getElementById('activeBarberSelect').value;
+            
+            const occupied = state.queues.find(q => q.status === 'IN_PROGRESS' && q.barber === activeBarber);
+            if (occupied) {
+                showToast(`Selesaikan pengerjaan ${occupied.queueNo} terlebih dahulu sebelum memanggil antrian berikutnya.`, 'error');
+                return;
+            }
+
+            const nextCust = state.queues.find(q => q.status === 'WAITING' && q.barber === activeBarber);
+
+            if (!nextCust) {
+                showToast('Tidak ada antrian menunggu untuk kursi Anda saat ini.', 'info');
+                return;
+            }
+
+            nextCust.status = 'IN_PROGRESS';
+            nextCust.barber = activeBarber;
+            const now = new Date();
+            nextCust.timeStart = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
+
+            sendToGas('updateQueueStatus', { id: nextCust.id, status: 'IN_PROGRESS', barber: activeBarber });
+            renderAll();
+            announceCall(nextCust.queueNo, nextCust.name, activeBarber);
+            showToast(`Memanggil ${nextCust.queueNo} (${nextCust.name}) ke ${activeBarber}`, 'success');
+        }
+
+        function updateStatusFromAdmin(newStatus, targetId = null) {
+            const activeBarber = document.getElementById('activeBarberSelect').value;
+            let targetItem = null;
+
+            if (targetId) {
+                targetItem = state.queues.find(q => q.id === targetId);
+            } else {
+                targetItem = state.queues.find(q => q.status === 'IN_PROGRESS' && q.barber === activeBarber);
+            }
+
+            if (!targetItem) {
+                showToast('Tidak ada pelanggan aktif yang sedang dilayani di kursi ini.', 'info');
+                return;
+            }
+
+            const chairName = targetItem.barber;
+            targetItem.status = newStatus;
+            const now = new Date();
+            const timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
+
+            if (newStatus === 'IN_PROGRESS') targetItem.timeStart = timeStr;
+            if (newStatus === 'COMPLETED' || newStatus === 'CANCELLED') targetItem.timeEnd = timeStr;
+
+            sendToGas('updateQueueStatus', { id: targetItem.id, status: newStatus, barber: chairName });
+
+            if (newStatus === 'COMPLETED') {
+                const nextCust = state.queues.find(q => q.status === 'WAITING' && q.barber === chairName);
+                if (nextCust) {
+                    nextCust.status = 'IN_PROGRESS';
+                    nextCust.timeStart = timeStr;
+                    sendToGas('updateQueueStatus', { id: nextCust.id, status: 'IN_PROGRESS', barber: chairName });
+                    renderAll();
+                    announceCall(nextCust.queueNo, nextCust.name, chairName);
+                    showToast(`✨ Kursi ${chairName} kosong! Otomatis memanggil ${nextCust.queueNo} (${nextCust.name})`, 'success');
+                    return;
+                }
+            }
+
+            renderAll();
+            showToast(`Status antrian ${targetItem.queueNo} (${targetItem.name}) diubah menjadi ${newStatus === 'COMPLETED' ? 'SELESAI' : newStatus}`, 'success');
+        }
+
+        function resetQueueToday() {
+            state.queues = [];
+            state.myTicketId = null;
+            localStorage.removeItem('barber_my_ticket');
+            sendToGas('resetQueueToday', { date: getTodayString() });
+            renderAll();
+            showToast('Semua data antrian hari ini telah di-reset.', 'info');
+        }
+
+        function renderAll() {
+            renderStats();
+            renderMyTicket();
+            renderTVDisplay();
+            renderAdminPanel();
+        }
+
+        function setSafeText(id, value) {
+            const el = document.getElementById(id);
+            if (el) el.innerText = value;
+        }
+
+        function renderStats() {
+            const total = state.queues.length;
+            const waiting = state.queues.filter(q => q.status === 'WAITING').length;
+            const inProgress = state.queues.filter(q => q.status === 'IN_PROGRESS').length;
+            const completed = state.queues.filter(q => q.status === 'COMPLETED').length;
+
+            setSafeText('statTotalToday', total);
+            setSafeText('statWaiting', waiting);
+            setSafeText('statInProgress', inProgress);
+            setSafeText('statCompleted', completed);
+        }
+
+        function renderMyTicket() {
+            const card = document.getElementById('myTicketCard');
+            if (!card) return;
+
+            if (!state.myTicketId) {
+                card.classList.add('hidden');
+                return;
+            }
+
+            const myItem = state.queues.find(q => q.id === state.myTicketId);
+            if (!myItem) {
+                card.classList.add('hidden');
+                return;
+            }
+
+            // Tutup otomatis E-Ticket yang sudah selesai/batal saat toko tutup,
+            // kecuali pelanggan tersebut masih dalam proses pelayanan (IN_PROGRESS)
+            const shopOpen = isShopOpen();
+            const isFinishedOrCancelled = myItem.status === 'COMPLETED' || myItem.status === 'CANCELLED';
+            if (!shopOpen && isFinishedOrCancelled && myItem.status !== 'IN_PROGRESS') {
+                state.myTicketId = null;
+                localStorage.removeItem('barber_my_ticket');
+                card.classList.add('hidden');
+                return;
+            }
+
+            card.classList.remove('hidden');
+            setSafeText('ticketNumber', myItem.queueNo);
+            setSafeText('ticketName', myItem.name);
+            setSafeText('ticketService', myItem.service);
+            setSafeText('ticketBarber', myItem.barber);
+
+            const waitingList = state.queues.filter(q => q.status === 'WAITING' && q.barber === myItem.barber);
+            const myIndex = waitingList.findIndex(q => q.id === myItem.id);
+            const aheadCount = myIndex >= 0 ? myIndex : 0;
+            setSafeText('ticketAhead', `${aheadCount} orang`);
+
+            const badge = document.getElementById('ticketStatusBadge');
+            if (!badge) return;
+
+            if (myItem.status === 'WAITING') {
+                badge.innerText = 'MENUNGGU GILIRAN';
+                badge.className = 'inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30';
+            } else if (myItem.status === 'IN_PROGRESS') {
+                badge.innerText = `SILAKAN MENUJU ${myItem.barber.toUpperCase()}!`;
+                badge.className = 'inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/30 text-blue-300 border border-blue-400 animate-pulse';
+            } else if (myItem.status === 'COMPLETED') {
+                badge.innerText = 'SELESAI';
+                badge.className = 'inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+            } else {
+                badge.innerText = 'BATAL';
+                badge.className = 'inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30';
+            }
+        }
+
+        function renderTVDisplay() {
+            const activeContainer = document.getElementById('tvActiveChairs');
+            const waitingContainer = document.getElementById('tvWaitingList');
+
+            const activeItems = state.queues.filter(q => q.status === 'IN_PROGRESS');
+            const waitingItems = state.queues.filter(q => q.status === 'WAITING');
+
+            setSafeText('tvWaitingCount', `${waitingItems.length} Antrian`);
+
+            if (!activeContainer || !waitingContainer) return;
+
+            const chairs = BARBER_CHAIRS;
+
+            activeContainer.innerHTML = chairs.map(chair => {
+                const serving = activeItems.find(q => normalizeBarberChair(q.barber) === chair.name);
+                return `
+                    <div class="glass-panel p-4 rounded-2xl border-2 ${serving ? 'border-amber-400 tv-chair-active' : 'border-slate-800'} transition flex flex-col justify-between relative overflow-hidden">
+                        <div class="flex items-center justify-between text-[11px] text-slate-400 pb-2 border-b border-slate-700/60">
+                            <span class="font-normal text-[10px] tracking-wide text-slate-400 truncate flex items-center gap-1.5">
+                                ${serving ? '<span class="w-1.5 h-3.5 rounded-full barber-stripe inline-block shrink-0"></span>' : ''}
+                                ${chair.name}
+                            </span>
+                            <span class="${serving ? 'text-emerald-400 font-semibold' : 'text-slate-500'} shrink-0 flex items-center gap-1">
+                                ${serving ? '<i class="fa-solid fa-scissors text-[10px] animate-mini-snip text-amber-400"></i> Dilayani' : 'Kosong'}
+                            </span>
+                        </div>
+                        <div class="text-center py-4">
+                            <span class="text-[10px] text-slate-400 uppercase tracking-widest block mb-1">Nomor Dipanggil</span>
+                            <div class="text-3xl sm:text-4xl font-extrabold text-white font-mono tracking-wider">
+                                ${serving ? serving.queueNo : '-'}
+                            </div>
+                            <div class="text-xs sm:text-sm font-bold text-amber-300 mt-2 truncate">
+                                ${serving ? serving.name : 'Siap Melayani'}
+                            </div>
+                            <div class="text-[10px] text-slate-400 mt-0.5 truncate">
+                                ${serving ? serving.service : 'Kursi Tersedia'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            if (waitingItems.length === 0) {
+                waitingContainer.innerHTML = `<div class="col-span-full text-center py-5 text-xs text-slate-500">Belum ada antrian menunggu.</div>`;
+            } else {
+                waitingContainer.innerHTML = waitingItems.map((item, idx) => `
+                    <div class="card-interactive animate-tab-enter bg-slate-900/90 p-3 rounded-xl border border-slate-800 hover:border-amber-500/40 text-center" style="animation-delay: ${idx * 60}ms;">
+                        <div class="text-lg font-extrabold text-amber-400 font-mono">${item.queueNo}</div>
+                        <div class="text-xs font-semibold text-slate-200 truncate mt-0.5">${item.name}</div>
+                        <div class="text-[10px] text-amber-300 mt-0.5 truncate">${item.barber}</div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function renderAdminPanel() {
+            const barberSelect = document.getElementById('activeBarberSelect');
+            const activeBarber = barberSelect ? barberSelect.value : 'Kursi 1 - 2-D';
+            const currentServing = state.queues.find(q => q.status === 'IN_PROGRESS' && q.barber === activeBarber);
+            const animBadge = document.getElementById('adminCuttingAnimBadge');
+
+            if (currentServing) {
+                setSafeText('myChairNo', currentServing.queueNo);
+                setSafeText('myChairCustName', currentServing.name);
+                setSafeText('myChairService', `${currentServing.service} (${currentServing.phone})`);
+                if (animBadge) animBadge.classList.remove('hidden');
+            } else {
+                setSafeText('myChairNo', 'Tidak Ada');
+                setSafeText('myChairCustName', 'Silakan Panggil Antrian');
+                setSafeText('myChairService', '-');
+                if (animBadge) animBadge.classList.add('hidden');
+            }
+
+            const tbody = document.getElementById('adminTableBody');
+            if (!tbody) return;
+            if (state.queues.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-5 text-slate-500">Belum ada data antrian hari ini.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = state.queues.map(q => {
+                let statusBadge = '';
+                if (q.status === 'WAITING') statusBadge = '<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold text-[10px]">Menunggu</span>';
+                else if (q.status === 'IN_PROGRESS') statusBadge = '<span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold text-[10px]">Sedang Dilayani</span>';
+                else if (q.status === 'COMPLETED') statusBadge = '<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[10px]">Selesai</span>';
+                else statusBadge = '<span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold text-[10px]">Batal</span>';
+
+                const isMyBarberRow = q.barber === activeBarber;
+
+                return `
+                    <tr class="${isMyBarberRow ? 'bg-amber-500/5' : ''} hover:bg-slate-800/50 transition">
+                        <td class="p-2.5 font-extrabold text-amber-400 font-mono">${q.queueNo}</td>
+                        <td class="p-2.5 font-semibold text-white">${q.name}</td>
+                        <td class="p-2.5 text-slate-400">${q.phone}</td>
+                        <td class="p-2.5 text-slate-300">${q.service}</td>
+                        <td class="p-2.5 text-slate-400 font-semibold">${q.barber}</td>
+                        <td class="p-2.5 text-slate-400 font-mono text-[11px]">${q.timeAdded}</td>
+                        <td class="p-2.5">${statusBadge}</td>
+                        <td class="p-2.5 text-center">
+                            <div class="flex items-center justify-center gap-1">
+                                <button onclick="updateStatusFromAdmin('IN_PROGRESS', '${q.id}')" title="Proses" class="p-1.5 bg-blue-600/30 hover:bg-blue-600 text-blue-300 hover:text-white rounded transition"><i class="fa-solid fa-play text-xs"></i></button>
+                                <button onclick="updateStatusFromAdmin('COMPLETED', '${q.id}')" title="Selesai" class="p-1.5 bg-emerald-600/30 hover:bg-emerald-600 text-emerald-300 hover:text-white rounded transition"><i class="fa-solid fa-check text-xs"></i></button>
+                                <button onclick="updateStatusFromAdmin('CANCELLED', '${q.id}')" title="Batal" class="p-1.5 bg-rose-600/30 hover:bg-rose-600 text-rose-300 hover:text-white rounded transition"><i class="fa-solid fa-xmark text-xs"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function announceCall(queueNo, customerName, barberChair) {
+            if (!state.soundEnabled) return;
+
+            unlockAudio();
+            playChimeSound();
+
+            if ('speechSynthesis' in window) {
+                try {
+                    window.speechSynthesis.cancel();
+
+                    const parts = queueNo.split('-');
+                    const prefix = parts[0] || '';
+                    const digits = (parts[1] || '').split('').map(d => d === '0' ? 'nol' : d).join(' ');
+
+                    const cleanChair = barberChair.replace('Kursi ', 'Kursi nomor ');
+                    const text = `Nomor antrian ${prefix}, ${digits}, atas nama ${customerName}, silakan menuju ke ${cleanChair}`;
+                    
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'id-ID';
+                    utterance.rate = 0.9;
+                    utterance.pitch = 1.0;
+                    utterance.volume = 1.0;
+                    
+                    const voices = window.speechSynthesis.getVoices();
+                    if (voices && voices.length > 0) {
+                        const idVoice = voices.find(v => v.lang && (v.lang.includes('id') || v.lang.includes('ID') || v.name.toLowerCase().includes('indonesia')));
+                        if (idVoice) utterance.voice = idVoice;
+                    }
+
+                    if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+                    window.speechSynthesis.speak(utterance);
+                } catch(err) {
+                    console.error('Speech error:', err);
+                }
+            }
+        }
+
+        function announceCurrentServing() {
+            const activeBarbers = state.queues.filter(q => q.status === 'IN_PROGRESS');
+            if (activeBarbers.length === 0) {
+                showToast('Tidak ada antrian yang sedang dipanggil saat ini.', 'info');
+                return;
+            }
+            const lastCalled = activeBarbers[activeBarbers.length - 1];
+            announceCall(lastCalled.queueNo, lastCalled.name, lastCalled.barber);
+        }
+
+        let audioCtx = null;
+        function getAudioContext() {
+            try {
+                if (!audioCtx) {
+                    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContextClass) audioCtx = new AudioContextClass();
+                }
+                if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+            } catch (e) {}
+            return audioCtx;
+        }
+
+        function unlockAudio() {
+            const ctx = getAudioContext();
+            if (ctx && ctx.state === 'suspended') ctx.resume();
+            if ('speechSynthesis' in window) {
+                try { if (window.speechSynthesis.paused) window.speechSynthesis.resume(); } catch(e) {}
+            }
+        }
+
+        ['click', 'touchstart', 'mousedown', 'keydown', 'submit'].forEach(eventType => {
+            document.addEventListener(eventType, unlockAudio, { passive: true });
+        });
+
+        function playChimeSound() {
+            try {
+                const ctx = getAudioContext();
+                if (!ctx) return;
+                const now = ctx.currentTime;
+
+                const osc1 = ctx.createOscillator();
+                const gain1 = ctx.createGain();
+                osc1.type = 'sine';
+                osc1.frequency.setValueAtTime(783.99, now);
+                gain1.gain.setValueAtTime(0.7, now);
+                gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+                osc1.connect(gain1);
+                gain1.connect(ctx.destination);
+                osc1.start(now);
+                osc1.stop(now + 0.45);
+
+                const osc2 = ctx.createOscillator();
+                const gain2 = ctx.createGain();
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(659.25, now + 0.18);
+                gain2.gain.setValueAtTime(0.7, now + 0.18);
+                gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+                osc2.connect(gain2);
+                gain2.connect(ctx.destination);
+                osc2.start(now + 0.18);
+                osc2.stop(now + 0.65);
+
+                const osc3 = ctx.createOscillator();
+                const gain3 = ctx.createGain();
+                osc3.type = 'sine';
+                osc3.frequency.setValueAtTime(523.25, now + 0.36);
+                gain3.gain.setValueAtTime(0.8, now + 0.36);
+                gain3.gain.exponentialRampToValueAtTime(0.001, now + 1.1);
+                osc3.connect(gain3);
+                gain3.connect(ctx.destination);
+                osc3.start(now + 0.36);
+                osc3.stop(now + 1.1);
+            } catch (e) {}
+        }
+
+        function toggleSound() {
+            unlockAudio();
+            state.soundEnabled = !state.soundEnabled;
+            const icon = document.getElementById('sound-icon');
+            const iconMob = document.getElementById('sound-icon-mob');
+
+            if (state.soundEnabled) {
+                if (icon) icon.className = 'fa-solid fa-volume-high text-amber-400';
+                if (iconMob) iconMob.className = 'fa-solid fa-volume-high';
+                showToast('Notifikasi suara diaktifkan', 'success');
+                playChimeSound();
+            } else {
+                if (icon) icon.className = 'fa-solid fa-volume-xmark text-slate-500';
+                if (iconMob) iconMob.className = 'fa-solid fa-volume-xmark text-slate-500';
+                showToast('Notifikasi suara dimatikan', 'info');
+            }
+        }
+
+        function fetchLatestQueue() {
+            if (isGasEnv) {
+                google.script.run.withSuccessHandler(jsonStr => {
+                    try {
+                        const data = JSON.parse(jsonStr);
+                        if (Array.isArray(data)) {
+                            state.queues = data;
+                            renderAll();
+                        }
+                    } catch (e) {}
+                }).getQueueData();
+                return;
+            }
+
+            if (!state.gasUrl) return;
+            fetch(`${state.gasUrl}?action=getQueueData`)
+                .then(res => res.json())
+                .then(data => {
+                    if (Array.isArray(data)) {
+                        state.queues = data;
+                        renderAll();
+                    }
+                })
+                .catch(err => {});
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgClass = 'bg-slate-800 border-amber-500/50 text-white';
+            let iconClass = 'fa-circle-info text-amber-400';
+
+            if (type === 'success') {
+                bgClass = 'bg-slate-900 border-emerald-500/50 text-white';
+                iconClass = 'fa-circle-check text-emerald-400';
+            } else if (type === 'error') {
+                bgClass = 'bg-slate-900 border-rose-500/50 text-white';
+                iconClass = 'fa-triangle-exclamation text-rose-400';
+            }
+
+            toast.className = `p-3 rounded-xl border shadow-xl flex items-center gap-2.5 text-xs font-semibold backdrop-blur-md transition-all duration-300 transform translate-x-10 opacity-0 ${bgClass}`;
+            toast.innerHTML = `
+                <i class="fa-solid ${iconClass} text-sm"></i>
+                <span class="flex-grow">${message}</span>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.remove('translate-x-10', 'opacity-0'); }, 10);
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-x-10');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
