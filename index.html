@@ -15,6 +15,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- Chart.js untuk Grafik KPI Interaktif -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- Konfigurasi Terpisah (URL Google Apps Script) -->
+    <script src="./config.js"></script>
     
     <script>
         tailwind.config = {
@@ -582,7 +584,10 @@
             <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
                 <div>
                     <h2 class="text-xl sm:text-2xl font-bold text-white font-serif tracking-wide">Panel Kendali Kapster</h2>
-                    <p class="text-xs sm:text-sm text-slate-400">Kelola panggilan antrian & status pengerjaan cukur</p>
+                    <div class="flex flex-wrap items-center gap-2 mt-0.5">
+                        <p class="text-xs sm:text-sm text-slate-400">Kelola panggilan antrian & status pengerjaan cukur</p>
+                        <span id="gasConnectionBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Memeriksa koneksi...</span>
+                    </div>
                 </div>
                 <div class="flex items-center gap-2 bg-slate-800 p-1.5 rounded-xl border border-slate-700">
                     <span class="text-xs text-slate-400 pl-2">Saya Kapster:</span>
@@ -910,7 +915,8 @@
     </div>
 
     <script>
-        const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbyuH4qs6b2aAboYOBqTCBQ5RK9RQYMqjh7hj5tZ2579Tnq-c7sLRpLccAJrJuk5IRQb/exec';
+        const CONFIG_GAS_URL = (window.APP_CONFIG && window.APP_CONFIG.GAS_URL) ? window.APP_CONFIG.GAS_URL.trim() : '';
+        const DEFAULT_GAS_URL = CONFIG_GAS_URL || 'https://script.google.com/macros/s/GANTI_DENGAN_ID_WEB_APP_ANDA/exec';
         const DEFAULT_ADMIN_PIN = '1998';
 
         // Sumber data terpusat layanan & kapster/kursi agar selalu selaras di form, antrian, TV, dan struk PDF
@@ -958,7 +964,10 @@
             adminPin: DEFAULT_ADMIN_PIN,
             isAdminUnlocked: false,
             revenueReport: null,
-            kpiPeriod: 'today'
+            kpiPeriod: 'today',
+            isSyncing: false,
+            lastWriteAt: 0,
+            pollTimer: null
         };
 
         let kpiCharts = {
@@ -967,59 +976,18 @@
             service: null
         };
 
-        function formatRupiah(num) {
-            return 'Rp ' + (Number(num) || 0).toLocaleString('id-ID');
-        }
-
-        function getTodayString() {
-            const now = new Date();
-            const parts = new Intl.DateTimeFormat('en-CA', {
-                timeZone: 'Asia/Jakarta',
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
-            }).formatToParts(now);
-            const y = parts.find(p => p.type === 'year')?.value || '1970';
-            const m = parts.find(p => p.type === 'month')?.value || '01';
-            const d = parts.find(p => p.type === 'day')?.value || '01';
-            return `${y}-${m}-${d}`;
-        }
-
-        function getWIBHour() {
-            const now = new Date();
-            const hourStr = new Intl.DateTimeFormat('en-GB', {
-                timeZone: 'Asia/Jakarta',
-                hour: '2-digit',
-                hour12: false
-            }).format(now);
-            return parseInt(hourStr, 10);
-        }
-
-        function isShopOpen() {
-            const hour = getWIBHour();
-            return hour >= 9 && hour < 21;
-        }
-
-        function updateShopStatusUI() {
-            const open = isShopOpen();
-            const badge = document.getElementById('shopStatusBadge');
-            const badgeMob = document.getElementById('shopStatusBadgeMobile');
-            const text = document.getElementById('shopStatusText');
-
-            if (open) {
-                if (text) text.innerText = 'Buka';
-                if (badge) badge.className = 'px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold uppercase tracking-wider';
-                if (badgeMob) {
-                    badgeMob.innerText = 'Buka';
-                    badgeMob.className = 'px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[9px] font-bold uppercase';
-                }
+        function updateConnectionBadge(status, label) {
+            const badge = document.getElementById('gasConnectionBadge');
+            if (!badge) return;
+            if (status === 'connected') {
+                badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
+                badge.innerHTML = `<i class="fa-solid fa-link mr-1"></i>${label || 'Terhubung Google Sheet'}`;
+            } else if (status === 'syncing') {
+                badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30';
+                badge.innerHTML = `<i class="fa-solid fa-rotate fa-spin mr-1"></i>${label || 'Menyinkronkan...'}`;
             } else {
-                if (text) text.innerText = 'Tutup';
-                if (badge) badge.className = 'px-2 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-[10px] font-bold uppercase tracking-wider';
-                if (badgeMob) {
-                    badgeMob.innerText = 'Tutup';
-                    badgeMob.className = 'px-1.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-[9px] font-bold uppercase';
-                }
+                badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30';
+                badge.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i>${label || 'URL config.js belum diisi'}`;
             }
         }
 
@@ -1035,14 +1003,36 @@
         }
 
         window.onload = function() {
+            const urlFromConfig = (window.APP_CONFIG && window.APP_CONFIG.GAS_URL && !window.APP_CONFIG.GAS_URL.includes('GANTI_DENGAN_ID'))
+                ? window.APP_CONFIG.GAS_URL.trim()
+                : '';
             const savedUrl = localStorage.getItem('barber_gas_url');
-            if (savedUrl) {
+
+            if (urlFromConfig) {
+                state.gasUrl = urlFromConfig;
+                localStorage.setItem('barber_gas_url', urlFromConfig);
+            } else if (savedUrl && !savedUrl.includes('GANTI_DENGAN_ID')) {
                 state.gasUrl = savedUrl;
+            }
+
+            if (isGasEnv || state.gasUrl) {
+                updateConnectionBadge('connected', 'Terhubung Google Sheet');
+            } else {
+                updateConnectionBadge('disconnected', 'URL config.js belum diisi');
             }
 
             if (sessionStorage.getItem('barber_admin_unlocked') === 'true') {
                 state.isAdminUnlocked = true;
             }
+
+            // Muat cadangan antrian hari ini dari cache browser agar tidak langsung 0 saat loading
+            try {
+                const cachedQueues = JSON.parse(localStorage.getItem('barber_queues_cache') || '[]');
+                const today = getTodayString();
+                if (Array.isArray(cachedQueues)) {
+                    state.queues = cachedQueues.filter(q => (q.date || today) === today);
+                }
+            } catch (e) {}
 
             const savedTicket = localStorage.getItem('barber_my_ticket');
             if (savedTicket) state.myTicketId = savedTicket;
@@ -1065,42 +1055,26 @@
             updateShopStatusUI();
             updateTVClock();
             renderAll();
-            fetchLatestQueue();
+            fetchLatestQueue(true);
             fetchRevenueReport();
-            setInterval(fetchLatestQueue, 4000);
+            startQueuePolling();
+            document.addEventListener('visibilitychange', handleVisibilityChange);
             setInterval(updateShopStatusUI, 10000);
             setInterval(updateTVClock, 1000);
         };
 
-        function switchTab(tabName) {
-            if (tabName === 'admin' && !state.isAdminUnlocked) {
-                openPinModal();
-                return;
-            }
+        function startQueuePolling() {
+            if (state.pollTimer) clearInterval(state.pollTimer);
+            const intervalMs = document.hidden ? 15000 : 6000;
+            state.pollTimer = setInterval(() => {
+                fetchLatestQueue(false);
+            }, intervalMs);
+        }
 
-            document.querySelectorAll('.tab-content').forEach(el => {
-                el.classList.add('hidden');
-                el.classList.remove('animate-tab-enter');
-            });
-            const targetView = document.getElementById(`view-${tabName}`);
-            if (targetView) {
-                targetView.classList.remove('hidden');
-                void targetView.offsetWidth;
-                targetView.classList.add('animate-tab-enter');
-            }
-
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('text-amber-400', 'border-amber-400', 'font-bold');
-                btn.classList.add('text-slate-400', 'border-transparent', 'font-medium');
-            });
-            const activeBtn = document.getElementById(`tab-btn-${tabName}`);
-            if (activeBtn) {
-                activeBtn.classList.add('text-amber-400', 'border-amber-400', 'font-bold');
-                activeBtn.classList.remove('text-slate-400', 'border-transparent', 'font-medium');
-            }
-
-            if (tabName === 'admin') {
-                fetchRevenueReport();
+        function handleVisibilityChange() {
+            startQueuePolling();
+            if (!document.hidden) {
+                fetchLatestQueue(false);
             }
         }
 
@@ -1223,6 +1197,7 @@
             state.queues.push(newItem);
             state.myTicketId = newId;
             localStorage.setItem('barber_my_ticket', newId);
+            try { localStorage.setItem('barber_queues_cache', JSON.stringify(state.queues)); } catch (e) {}
 
             sendToGas('registerQueue', newItem);
             renderAll();
@@ -1240,9 +1215,15 @@
         }
 
         function sendToGas(action, payload = {}) {
+            state.isSyncing = true;
+            state.lastWriteAt = Date.now();
+            updateConnectionBadge('syncing', 'Menyimpan ke Sheet...');
+
             if (isGasEnv) {
                 if (action === 'registerQueue') {
                     google.script.run.withSuccessHandler(resStr => {
+                        state.isSyncing = false;
+                        updateConnectionBadge('connected', 'Terhubung Google Sheet');
                         try {
                             const res = JSON.parse(resStr);
                             if (res && res.success && res.queueNo) {
@@ -1251,25 +1232,42 @@
                                 renderAll();
                             }
                         } catch (e) {}
-                        fetchLatestQueue();
+                        fetchLatestQueue(true);
+                    }).withFailureHandler(() => {
+                        state.isSyncing = false;
                     }).registerQueue(payload);
                 } else if (action === 'updateQueueStatus') {
                     google.script.run.withSuccessHandler(() => {
-                        fetchLatestQueue();
+                        state.isSyncing = false;
+                        updateConnectionBadge('connected', 'Terhubung Google Sheet');
+                        fetchLatestQueue(true);
                         fetchRevenueReport();
+                    }).withFailureHandler(() => {
+                        state.isSyncing = false;
                     }).updateQueueStatus(payload.id, payload.status, payload.barber);
                 } else if (action === 'resetQueueToday') {
                     if (typeof google.script.run.resetQueueToday === 'function') {
                         google.script.run.withSuccessHandler(() => {
-                            fetchLatestQueue();
+                            state.isSyncing = false;
+                            updateConnectionBadge('connected', 'Terhubung Google Sheet');
+                            fetchLatestQueue(true);
                             fetchRevenueReport();
+                        }).withFailureHandler(() => {
+                            state.isSyncing = false;
                         }).resetQueueToday();
+                    } else {
+                        state.isSyncing = false;
                     }
                 }
                 return;
             }
 
-            if (!state.gasUrl) return;
+            if (!state.gasUrl) {
+                state.isSyncing = false;
+                updateConnectionBadge('disconnected', 'URL config.js belum diisi');
+                return;
+            }
+
             const encodedData = encodeURIComponent(JSON.stringify(payload));
             let queryParams = `action=${action}&data=${encodedData}`;
             if (payload && payload.id) queryParams += `&id=${encodeURIComponent(payload.id)}`;
@@ -1278,10 +1276,146 @@
 
             fetch(`${state.gasUrl}?${queryParams}`, { mode: 'no-cors' })
                 .then(() => setTimeout(() => {
-                    fetchLatestQueue();
+                    state.isSyncing = false;
+                    updateConnectionBadge('connected', 'Terhubung Google Sheet');
+                    fetchLatestQueue(true);
                     fetchRevenueReport();
-                }, 1200))
-                .catch(err => console.error('GAS Sync error:', err));
+                }, 1600))
+                .catch(err => {
+                    state.isSyncing = false;
+                    updateConnectionBadge('disconnected', 'Gagal sinkron ke Sheet');
+                    console.error('GAS Sync error:', err);
+                });
+        }
+        function fetchLatestQueue(force = false) {
+            // Hindari polling menimpa perubahan lokal yang baru saja dikirim (< 2.5 detik)
+            if (!force && (state.isSyncing || (Date.now() - state.lastWriteAt) < 2500)) {
+                return;
+            }
+
+            if (isGasEnv) {
+                google.script.run.withSuccessHandler(jsonStr => {
+                    if (!force && (state.isSyncing || (Date.now() - state.lastWriteAt) < 2500)) return;
+                    try {
+                        const data = JSON.parse(jsonStr);
+                        if (Array.isArray(data)) {
+                            state.queues = data;
+                            try { localStorage.setItem('barber_queues_cache', JSON.stringify(data)); } catch (e) {}
+                            updateConnectionBadge('connected', 'Terhubung Google Sheet');
+                            renderAll();
+                        }
+                    } catch (e) {}
+                }).getQueueData();
+                return;
+            }
+
+            if (!state.gasUrl) {
+                updateConnectionBadge('disconnected', 'URL config.js belum diisi');
+                return;
+            }
+
+            const reqStartedAt = Date.now();
+            fetch(`${state.gasUrl}?action=getQueueData&t=${reqStartedAt}`)
+                .then(res => res.json())
+                .then(data => {
+                    // Abaikan respons lama jika ada aksi tulis baru selama fetch berlangsung
+                    if (!force && (state.isSyncing || state.lastWriteAt > reqStartedAt)) return;
+                    if (Array.isArray(data)) {
+                        state.queues = data;
+                        try { localStorage.setItem('barber_queues_cache', JSON.stringify(data)); } catch (e) {}
+                        updateConnectionBadge('connected', 'Terhubung Google Sheet');
+                        renderAll();
+                    }
+                })
+                .catch(() => {
+                    updateConnectionBadge('disconnected', 'Koneksi Sheet terganggu');
+                });
+        }
+
+        function switchTab(tabId) {
+            if (tabId === 'admin' && !state.isAdminUnlocked) {
+                openPinModal();
+                return;
+            }
+
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            const target = document.getElementById(`view-${tabId}`);
+            if (target) {
+                target.classList.remove('hidden');
+                target.classList.remove('animate-tab-enter');
+                void target.offsetWidth;
+                target.classList.add('animate-tab-enter');
+            }
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active', 'text-amber-400', 'border-amber-400', 'font-bold');
+                btn.classList.add('text-slate-400', 'border-transparent', 'font-medium');
+            });
+            const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+            if (activeBtn) {
+                activeBtn.classList.add('active', 'text-amber-400', 'border-amber-400', 'font-bold');
+                activeBtn.classList.remove('text-slate-400', 'border-transparent', 'font-medium');
+            }
+
+            ['customer', 'display', 'admin', 'contact'].forEach(t => {
+                const mobBtn = document.getElementById(`mob-tab-${t}`);
+                if (mobBtn) {
+                    if (t === tabId) {
+                        mobBtn.classList.add('text-amber-400', 'font-semibold');
+                        mobBtn.classList.remove('text-slate-400');
+                    } else {
+                        mobBtn.classList.remove('text-amber-400', 'font-semibold');
+                        mobBtn.classList.add('text-slate-400');
+                    }
+                }
+            });
+
+            if (tabId === 'admin') {
+                fetchRevenueReport();
+                renderKpiDashboard();
+            }
+        }
+
+        function getTodayString() {
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            const d = String(now.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function formatRupiah(num) {
+            const val = Number(num) || 0;
+            return 'Rp ' + val.toLocaleString('id-ID');
+        }
+
+        function isShopOpen() {
+            const now = new Date();
+            const hour = now.getHours();
+            return hour >= 9 && hour < 21;
+        }
+
+        function updateShopStatusUI() {
+            const open = isShopOpen();
+            const badge = document.getElementById('shopStatusBadge');
+            const text = document.getElementById('shopStatusText');
+            const mobBadge = document.getElementById('shopStatusBadgeMobile');
+
+            if (open) {
+                if (badge) badge.className = 'px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold uppercase tracking-wider';
+                if (text) text.innerText = 'Buka';
+                if (mobBadge) {
+                    mobBadge.className = 'px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[9px] font-bold uppercase';
+                    mobBadge.innerText = 'Buka';
+                }
+            } else {
+                if (badge) badge.className = 'px-2 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-[10px] font-bold uppercase tracking-wider';
+                if (text) text.innerText = 'Tutup';
+                if (mobBadge) {
+                    mobBadge.className = 'px-1.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-[9px] font-bold uppercase';
+                    mobBadge.innerText = 'Tutup';
+                }
+            }
         }
 
         function cancelMyTicket() {
@@ -1524,6 +1658,7 @@
             state.queues = [];
             state.myTicketId = null;
             localStorage.removeItem('barber_my_ticket');
+            localStorage.removeItem('barber_queues_cache');
             sendToGas('resetQueueToday', { date: getTodayString() });
             renderAll();
             showToast('Semua data antrian hari ini telah di-reset.', 'info');
@@ -1937,12 +2072,13 @@
                     else localMix['Haircut'] += 1;
                 });
 
-                const mixData = (!isToday && rep && rep.serviceMix)
+                const serverMixObj = isToday ? rep?.serviceMixToday : rep?.serviceMix;
+                const mixData = serverMixObj
                     ? [
-                        Number(rep.serviceMix['Haircut Regular']) || 0,
-                        Number(rep.serviceMix['Beard Trim & Grooming']) || 0,
-                        Number(rep.serviceMix['Gentleman VIP Package']) || 0,
-                        Number(rep.serviceMix['Hair Color / Dye']) || 0
+                        Math.max(localMix['Haircut'], Number(serverMixObj['Haircut Regular']) || 0),
+                        Math.max(localMix['Beard'], Number(serverMixObj['Beard Trim & Grooming']) || 0),
+                        Math.max(localMix['VIP'], Number(serverMixObj['Gentleman VIP Package']) || 0),
+                        Math.max(localMix['Color'], Number(serverMixObj['Hair Color / Dye']) || 0)
                     ]
                     : [localMix['Haircut'], localMix['Beard'], localMix['VIP'], localMix['Color']];
 
@@ -2201,32 +2337,6 @@
                 if (iconMob) iconMob.className = 'fa-solid fa-volume-xmark text-slate-500';
                 showToast('Notifikasi suara dimatikan', 'info');
             }
-        }
-
-        function fetchLatestQueue() {
-            if (isGasEnv) {
-                google.script.run.withSuccessHandler(jsonStr => {
-                    try {
-                        const data = JSON.parse(jsonStr);
-                        if (Array.isArray(data)) {
-                            state.queues = data;
-                            renderAll();
-                        }
-                    } catch (e) {}
-                }).getQueueData();
-                return;
-            }
-
-            if (!state.gasUrl) return;
-            fetch(`${state.gasUrl}?action=getQueueData`)
-                .then(res => res.json())
-                .then(data => {
-                    if (Array.isArray(data)) {
-                        state.queues = data;
-                        renderAll();
-                    }
-                })
-                .catch(err => {});
         }
 
         function showToast(message, type = 'info') {
