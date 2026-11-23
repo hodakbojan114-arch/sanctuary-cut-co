@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sanctuary Cut Co.</title>
+    <title>Sanctuary Cut Co. - Sistem Antrian Barbershop</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='31' fill='%23ffffff' stroke='%23222222' stroke-width='2'/%3E%3Cdefs%3E%3CclipPath id='pole'%3E%3Crect x='25.5' y='15.5' width='13' height='33'/%3E%3C/clipPath%3E%3C/defs%3E%3Cg stroke='%23222222' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M28 11.5a4 4 0 0 1 8 0z' fill='%23888888'/%3E%3Cpath d='M25 14.2a3 3 0 0 1 3-2.7h8a3 3 0 0 1 3 2.7z' fill='%23888888'/%3E%3Cpath d='M25 49.8a3 3 0 0 0 3 2.7h8a3 3 0 0 0 3-2.7z' fill='%23888888'/%3E%3Cpath d='M28 52.5a4 4 0 0 0 8 0z' fill='%23888888'/%3E%3C/g%3E%3Crect x='25.5' y='15.5' width='13' height='33' fill='%23f3f4f6' stroke='%23222222' stroke-width='1.5'/%3E%3Cg clip-path='url(%23pole)'%3E%3Cpolygon points='23,14 33,14 23,24' fill='%23c81e2b'/%3E%3Cpolygon points='23,28 41,14 41,20 23,34' fill='%231e3a8a'/%3E%3Cpolygon points='23,41 41,27 41,33 23,47' fill='%23c81e2b'/%3E%3Cpolygon points='31,50 41,40 41,50' fill='%231e3a8a'/%3E%3C/g%3E%3Cpath d='M22 18a16.5 16.5 0 0 0 0 28M42 18a16.5 16.5 0 0 1 0 28' fill='none' stroke='%23222222' stroke-width='1.8' stroke-linecap='round'/%3E%3Cpath d='M18.5 29.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8zM45.5 29.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8z' fill='%23c81e2b'/%3E%3C/svg%3E">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Cinzel (Display Barbershop), Plus Jakarta Sans (UI Modern), JetBrains Mono (Nomor Antrian) -->
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=JetBrains+Mono:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- FontAwesome Icons -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='31' fill='%23ffffff' stroke='%23222222' stroke-width='2'/%3E%3Cdefs%3E%3CclipPath id='pole'%3E%3Crect x='25.5' y='15.5' width='13' height='33'/%3E%3C/clipPath%3E%3C/defs%3E%3Cg stroke='%23222222' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M28 11.5a4 4 0 0 1 8 0z' fill='%23888888'/%3E%3Cpath d='M25 14.2a3 3 0 0 1 3-2.7h8a3 3 0 0 1 3 2.7z' fill='%23888888'/%3E%3Cpath d='M25 49.8a3 3 0 0 0 3 2.7h8a3 3 0 0 0 3-2.7z' fill='%23888888'/%3E%3Cpath d='M28 52.5a4 4 0 0 0 8 0z' fill='%23888888'/%3E%3C/g%3E%3Crect x='25.5' y='15.5' width='13' height='33' fill='%23f3f4f6' stroke='%23222222' stroke-width='1.5'/%3E%3Cg clip-path='url(%23pole)'%3E%3Cpolygon points='23,14 33,14 23,24' fill='%23c81e2b'/%3E%3Cpolygon points='23,28 41,14 41,20 23,34' fill='%231e3a8a'/%3E%3Cpolygon points='23,41 41,27 41,33 23,47' fill='%23c81e2b'/%3E%3Cpolygon points='31,50 41,40 41,50' fill='%231e3a8a'/%3E%3C/g%3E%3Cpath d='M22 18a16.5 16.5 0 0 0 0 28M42 18a16.5 16.5 0 0 1 0 28' fill='none' stroke='%23222222' stroke-width='1.8' stroke-linecap='round'/%3E%3Cpath d='M18.5 29.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8zM45.5 29.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8z' fill='%23c81e2b'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- jsPDF Library untuk Unduh Struk / Invoice PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
@@ -483,25 +484,25 @@
                                 <span id="ticketBarber" class="font-bold text-amber-400">-</span>
                             </div>
                             <div class="flex justify-between text-slate-400">
-                            <span>Antrian Di Depan Anda</span>
-                            <span id="ticketAhead" class="font-extrabold text-amber-400">0 orang</span>
-                        </div>
-                    </div>
-
-                    <div class="pt-3 border-t border-dashed border-slate-600/80 text-center">
-                        <div class="bg-white px-3 py-1.5 rounded-lg inline-block my-1 shadow-inner">
-                            <div class="flex gap-1 h-6 items-center justify-center">
-                                <div class="w-1 bg-slate-900 h-full"></div><div class="w-2 bg-slate-900 h-full"></div><div class="w-1 bg-slate-900 h-full"></div><div class="w-3 bg-slate-900 h-full"></div><div class="w-1 bg-slate-900 h-full"></div><div class="w-2 bg-slate-900 h-full"></div><div class="w-1 bg-slate-900 h-full"></div><div class="w-2 bg-slate-900 h-full"></div><div class="w-1 bg-slate-900 h-full"></div>
+                                <span>Antrian Di Depan Anda</span>
+                                <span id="ticketAhead" class="font-extrabold text-amber-400">0 orang</span>
                             </div>
                         </div>
-                        <p class="text-[9px] text-slate-400 uppercase tracking-widest mt-1">Tunjukkan ke kapster saat dipanggil</p>
-                        
-                        <button type="button" onclick="downloadTicketPDF()" class="btn-shimmer mt-3 w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-extrabold text-xs tracking-wide shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-file-invoice"></i> Cetak Invoice
-                        </button>
 
-                        <button onclick="cancelMyTicket()" class="mt-2.5 text-xs text-rose-400 hover:text-rose-300 underline block mx-auto transition">Batalkan Antrian Saya</button>
-                    </div>
+                        <div class="pt-3 border-t border-dashed border-slate-600/80 text-center">
+                            <div class="bg-white px-3 py-1.5 rounded-lg inline-block my-1 shadow-inner">
+                                <div class="flex gap-1 h-6 items-center justify-center">
+                                    <div class="w-1 bg-slate-900 h-full"></div><div class="w-2 bg-slate-900 h-full"></div><div class="w-1 bg-slate-900 h-full"></div><div class="w-3 bg-slate-900 h-full"></div><div class="w-1 bg-slate-900 h-full"></div><div class="w-2 bg-slate-900 h-full"></div><div class="w-1 bg-slate-900 h-full"></div><div class="w-2 bg-slate-900 h-full"></div><div class="w-1 bg-slate-900 h-full"></div>
+                                </div>
+                            </div>
+                            <p class="text-[9px] text-slate-400 uppercase tracking-widest mt-1">Tunjukkan ke kapster saat dipanggil</p>
+                            
+                            <button type="button" onclick="downloadTicketPDF()" class="btn-shimmer mt-3 w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-extrabold text-xs tracking-wide shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-file-invoice"></i> Cetak Invoice
+                            </button>
+
+                            <button onclick="cancelMyTicket()" class="mt-2.5 text-xs text-rose-400 hover:text-rose-300 underline block mx-auto transition">Batalkan Antrian Saya</button>
+                        </div>
                     </div>
 
                     <div class="glass-panel p-5 rounded-2xl shadow-xl border border-slate-700/60">
@@ -636,6 +637,62 @@
                 </div>
             </div>
 
+            <!-- Panel Laporan Omzet Harian & Bulanan -->
+            <div class="glass-panel p-4 sm:p-5 rounded-2xl border border-emerald-500/25 space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-700/60 pb-3">
+                    <div>
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-sack-dollar text-emerald-400"></i> Laporan Omzet & Pendapatan
+                        </h3>
+                    </div>
+                    <button type="button" onclick="fetchRevenueReport()" class="px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 font-bold rounded-xl text-xs transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-arrows-rotate"></i> Refresh Omzet
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="bg-slate-950/80 p-3.5 rounded-xl border border-emerald-500/30">
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                            <span>Omzet Hari Ini</span>
+                            <span id="revTodayCount" class="text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">0 selesai</span>
+                        </div>
+                        <div id="revTodayAmount" class="text-xl sm:text-2xl font-extrabold font-mono text-emerald-400 mt-1.5">Rp 0</div>
+                    </div>
+
+                    <div class="bg-slate-950/80 p-3.5 rounded-xl border border-amber-500/30">
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                            <span>Omzet Bulan Ini</span>
+                            <span id="revMonthCount" class="text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">0 selesai</span>
+                        </div>
+                        <div id="revMonthAmount" class="text-xl sm:text-2xl font-extrabold font-mono text-amber-400 mt-1.5">Rp 0</div>
+                    </div>
+
+                    <div class="bg-slate-950/80 p-3.5 rounded-xl border border-blue-500/30">
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                            <span>Total Akumulasi</span>
+                            <span class="text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">Semua Hari</span>
+                        </div>
+                        <div id="revAllTimeAmount" class="text-xl sm:text-2xl font-extrabold font-mono text-white mt-1.5">Rp 0</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-1">
+                    <div class="bg-slate-900/70 p-3.5 rounded-xl border border-slate-800">
+                        <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                            <i class="fa-solid fa-user-check text-amber-400"></i> Omzet Per Kapster (Hari Ini)
+                        </h4>
+                        <div id="revBarberBreakdown" class="grid grid-cols-2 gap-2 text-xs"></div>
+                    </div>
+
+                    <div class="bg-slate-900/70 p-3.5 rounded-xl border border-slate-800">
+                        <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                            <i class="fa-solid fa-calendar-days text-emerald-400"></i> Rekap 7 Hari Terakhir
+                        </h4>
+                        <div id="revRecentDaysList" class="space-y-1.5 text-xs"></div>
+                    </div>
+                </div>
+            </div>
+
             <div class="glass-panel p-4 sm:p-5 rounded-2xl border border-slate-700/50">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
                     <h3 class="text-sm font-bold text-white flex items-center gap-2">
@@ -760,279 +817,8 @@
     </div>
 
     <script>
-        const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbzUhQnAf7QLSuIqTYOm0euQRngKJfjiHSnpQhLzSz89TX9mfEsvXqWMBN7hU8JEa3c2/exec';
+        const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/GANTI_DENGAN_ID_WEB_APP_ANDA/exec';
         const DEFAULT_ADMIN_PIN = '1998';
-
-        const CODE_GS_CONTENT = `// ==========================================
-// CODE.GS - SANCTUARY CUT CO. GOOGLE APPS SCRIPT
-// ==========================================
-
-const SHEET_NAME = 'Antrian_Hari_Ini';
-
-function doGet(e) {
-  if (e && e.parameter && e.parameter.action === 'getQueueData') {
-    return ContentService.createTextOutput(getQueueData())
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-  
-  if (e && e.parameter && e.parameter.action === 'registerQueue') {
-    try {
-      const data = JSON.parse(e.parameter.data);
-      const res = registerQueue(data);
-      return ContentService.createTextOutput(res).setMimeType(ContentService.MimeType.JSON);
-    } catch(err) {
-      return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() })).setMimeType(ContentService.MimeType.JSON);
-    }
-  }
-
-  if (e && e.parameter && e.parameter.action === 'updateQueueStatus') {
-    try {
-      let id = e.parameter.id;
-      let status = e.parameter.status;
-      let barber = e.parameter.barber;
-      if (e.parameter.data) {
-        const d = JSON.parse(e.parameter.data);
-        id = id || d.id;
-        status = status || d.status;
-        barber = barber || d.barber;
-      }
-      const res = updateQueueStatus(id, status, barber);
-      return ContentService.createTextOutput(res).setMimeType(ContentService.MimeType.JSON);
-    } catch(err) {
-      return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() })).setMimeType(ContentService.MimeType.JSON);
-    }
-  }
-
-  if (e && e.parameter && e.parameter.action === 'resetQueueToday') {
-    try {
-      const res = resetQueueToday();
-      return ContentService.createTextOutput(res).setMimeType(ContentService.MimeType.JSON);
-    } catch(err) {
-      return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() })).setMimeType(ContentService.MimeType.JSON);
-    }
-  }
-  
-  return HtmlService.createTemplateFromFile('index')
-    .evaluate()
-    .setTitle('Sanctuary Cut Co.')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1.0')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-}
-
-function doPost(e) {
-  try {
-    let data = {};
-    if (e.postData && e.postData.contents) {
-      data = JSON.parse(e.postData.contents);
-    }
-    const action = e.parameter.action || data.action;
-    let result = { success: false };
-
-    if (action === 'registerQueue') {
-      result = JSON.parse(registerQueue(data));
-    } else if (action === 'updateQueueStatus') {
-      result = JSON.parse(updateQueueStatus(data.id, data.status, data.barber));
-    } else if (action === 'resetQueueToday') {
-      result = JSON.parse(resetQueueToday());
-    }
-
-    return ContentService.createTextOutput(JSON.stringify(result))
-      .setMimeType(ContentService.MimeType.JSON);
-  } catch(err) {
-    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-}
-
-function getSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName(SHEET_NAME);
-  if (!sheet) {
-    sheet = ss.insertSheet(SHEET_NAME);
-    sheet.appendRow([
-      'ID', 'Tanggal', 'No Antrian', 'Nama Pelanggan', 'No HP', 
-      'Layanan', 'Harga', 'Kapster', 'Status', 'Waktu Daftar', 'Waktu Mulai', 'Waktu Selesai'
-    ]);
-    sheet.getRange(1, 1, 1, 12).setFontWeight('bold').setBackground('#0f172a').setFontColor('#f59e0b');
-    sheet.getRange('G:G').setNumberFormat('#,##0');
-  }
-  return sheet;
-}
-
-function getServicePrice(serviceName) {
-  const s = String(serviceName || '').toLowerCase();
-  if (s.includes('beard')) return 20000;
-  if (s.includes('vip')) return 70000;
-  if (s.includes('color') || s.includes('dye')) return 75000;
-  return 45000;
-}
-
-function getQueueData() {
-  const sheet = getSheet();
-  const data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return JSON.stringify([]);
-  
-  const tz = Session.getScriptTimeZone();
-  const todayStr = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
-  const result = [];
-  
-  for (let i = 1; i < data.length; i++) {
-    const row = data[i];
-    if (!row[0] && !row[2]) continue;
-
-    let rowDateStr = '';
-    if (row[1] instanceof Date) {
-      rowDateStr = Utilities.formatDate(row[1], tz, 'yyyy-MM-dd');
-    } else {
-      rowDateStr = String(row[1] || '').trim().split('T')[0];
-    }
-    
-    if (rowDateStr === todayStr) {
-      let rawBarber = String(row[7] || '2-D');
-      let fullBarberName = rawBarber;
-      if (rawBarber === '2-D') fullBarberName = 'Kursi 1 - 2-D';
-      else if (rawBarber === 'Murdoc') fullBarberName = 'Kursi 2 - Murdoc';
-      else if (rawBarber === 'Noodle') fullBarberName = 'Kursi 3 - Noodle';
-      else if (rawBarber === 'Russell') fullBarberName = 'Kursi 4 - Russell';
-
-      result.push({
-        id: String(row[0]),
-        date: rowDateStr,
-        queueNo: String(row[2] || '').trim(),
-        name: row[3],
-        phone: String(row[4]),
-        service: row[5],
-        price: Number(row[6]) || getServicePrice(row[5]),
-        barber: fullBarberName,
-        status: row[8],
-        timeAdded: row[9],
-        timeStart: row[10],
-        timeEnd: row[11]
-      });
-    }
-  }
-  return JSON.stringify(result);
-}
-
-function registerQueue(formData) {
-  const sheet = getSheet();
-  const tz = Session.getScriptTimeZone();
-  const todayStr = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
-  const timeStr = Utilities.formatDate(new Date(), tz, 'HH:mm:ss');
-  
-  const data = sheet.getDataRange().getValues();
-  const prefix = (formData.service || '').toLowerCase().includes('vip') ? 'V' : 'A';
-  
-  let maxNum = 0;
-  for (let i = 1; i < data.length; i++) {
-    const row = data[i];
-    let rowDateStr = '';
-    if (row[1] instanceof Date) {
-      rowDateStr = Utilities.formatDate(row[1], tz, 'yyyy-MM-dd');
-    } else {
-      rowDateStr = String(row[1] || '').trim().split('T')[0];
-    }
-
-    if (rowDateStr === todayStr) {
-      const qNo = String(row[2] || '').trim().toUpperCase();
-      if (qNo.startsWith(prefix + '-')) {
-        const numPart = parseInt(qNo.split('-')[1], 10);
-        if (!isNaN(numPart) && numPart > maxNum) {
-          maxNum = numPart;
-        }
-      }
-    }
-  }
-
-  const nextNum = maxNum + 1;
-  const queueNo = prefix + '-' + String(nextNum).padStart(3, '0');
-  const id = formData.id || ('Q-' + Date.now());
-  
-  let rawPhone = String(formData.phone || '').trim();
-  const formattedPhone = rawPhone.startsWith("'") ? rawPhone : "'" + rawPhone;
-
-  const servicePrice = Number(formData.price) || getServicePrice(formData.service);
-
-  let cleanBarber = formData.barber || '2-D';
-  if (cleanBarber.includes('2-D')) cleanBarber = '2-D';
-  else if (cleanBarber.includes('Murdoc')) cleanBarber = 'Murdoc';
-  else if (cleanBarber.includes('Noodle')) cleanBarber = 'Noodle';
-  else if (cleanBarber.includes('Russell')) cleanBarber = 'Russell';
-
-  sheet.appendRow([
-    id,
-    "'" + todayStr,
-    queueNo,
-    formData.name,
-    formattedPhone,
-    formData.service,
-    servicePrice,
-    cleanBarber,
-    formData.status || 'WAITING',
-    "'" + (formData.timeAdded || timeStr),
-    formData.timeStart ? "'" + formData.timeStart : '',
-    formData.timeEnd ? "'" + formData.timeEnd : ''
-  ]);
-  
-  return JSON.stringify({ success: true, queueNo: queueNo, id: id });
-}
-
-function updateQueueStatus(id, newStatus, barberName) {
-  const sheet = getSheet();
-  const data = sheet.getDataRange().getValues();
-  const timeStr = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'HH:mm:ss');
-  
-  let cleanBarber = barberName || '';
-  if (cleanBarber.includes('2-D')) cleanBarber = '2-D';
-  else if (cleanBarber.includes('Murdoc')) cleanBarber = 'Murdoc';
-  else if (cleanBarber.includes('Noodle')) cleanBarber = 'Noodle';
-  else if (cleanBarber.includes('Russell')) cleanBarber = 'Russell';
-
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === String(id)) {
-      const rowNum = i + 1;
-      sheet.getRange(rowNum, 9).setValue(newStatus);
-      if (cleanBarber) sheet.getRange(rowNum, 8).setValue(cleanBarber);
-      
-      if (newStatus === 'IN_PROGRESS') {
-        sheet.getRange(rowNum, 11).setValue("'" + timeStr);
-      } else if (newStatus === 'COMPLETED' || newStatus === 'CANCELLED') {
-        sheet.getRange(rowNum, 12).setValue("'" + timeStr);
-      }
-      return JSON.stringify({ success: true });
-    }
-  }
-  return JSON.stringify({ success: false, message: 'ID tidak ditemukan' });
-}
-
-function resetQueueToday() {
-  const sheet = getSheet();
-  const data = sheet.getDataRange().getValues();
-  if (data.length <= 1) {
-    return JSON.stringify({ success: true, deletedCount: 0 });
-  }
-
-  const tz = Session.getScriptTimeZone();
-  const todayStr = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
-  let deletedCount = 0;
-
-  for (let i = data.length - 1; i >= 1; i--) {
-    const row = data[i];
-    let rowDateStr = '';
-    if (row[1] instanceof Date) {
-      rowDateStr = Utilities.formatDate(row[1], tz, 'yyyy-MM-dd');
-    } else {
-      rowDateStr = String(row[1] || '').trim().split('T')[0].replace(/^'/, '');
-    }
-
-    if (rowDateStr === todayStr) {
-      sheet.deleteRow(i + 1);
-      deletedCount++;
-    }
-  }
-
-  return JSON.stringify({ success: true, deletedCount: deletedCount });
-}`;
 
         // Sumber data terpusat layanan & kapster/kursi agar selalu selaras di form, antrian, TV, dan struk PDF
         const SERVICE_CATALOG = [
@@ -1077,8 +863,13 @@ function resetQueueToday() {
             gasUrl: DEFAULT_GAS_URL.includes('GANTI_DENGAN_ID') ? '' : DEFAULT_GAS_URL,
             soundEnabled: true,
             adminPin: DEFAULT_ADMIN_PIN,
-            isAdminUnlocked: false
+            isAdminUnlocked: false,
+            revenueReport: null
         };
+
+        function formatRupiah(num) {
+            return 'Rp ' + (Number(num) || 0).toLocaleString('id-ID');
+        }
 
         function getTodayString() {
             const now = new Date();
@@ -1175,6 +966,7 @@ function resetQueueToday() {
             updateTVClock();
             renderAll();
             fetchLatestQueue();
+            fetchRevenueReport();
             setInterval(fetchLatestQueue, 4000);
             setInterval(updateShopStatusUI, 10000);
             setInterval(updateTVClock, 1000);
@@ -1205,6 +997,10 @@ function resetQueueToday() {
             if (activeBtn) {
                 activeBtn.classList.add('text-amber-400', 'border-amber-400', 'font-bold');
                 activeBtn.classList.remove('text-slate-400', 'border-transparent', 'font-medium');
+            }
+
+            if (tabName === 'admin') {
+                fetchRevenueReport();
             }
         }
 
@@ -1358,10 +1154,16 @@ function resetQueueToday() {
                         fetchLatestQueue();
                     }).registerQueue(payload);
                 } else if (action === 'updateQueueStatus') {
-                    google.script.run.withSuccessHandler(() => fetchLatestQueue()).updateQueueStatus(payload.id, payload.status, payload.barber);
+                    google.script.run.withSuccessHandler(() => {
+                        fetchLatestQueue();
+                        fetchRevenueReport();
+                    }).updateQueueStatus(payload.id, payload.status, payload.barber);
                 } else if (action === 'resetQueueToday') {
                     if (typeof google.script.run.resetQueueToday === 'function') {
-                        google.script.run.withSuccessHandler(() => fetchLatestQueue()).resetQueueToday();
+                        google.script.run.withSuccessHandler(() => {
+                            fetchLatestQueue();
+                            fetchRevenueReport();
+                        }).resetQueueToday();
                     }
                 }
                 return;
@@ -1375,7 +1177,10 @@ function resetQueueToday() {
             if (payload && payload.barber) queryParams += `&barber=${encodeURIComponent(payload.barber)}`;
 
             fetch(`${state.gasUrl}?${queryParams}`, { mode: 'no-cors' })
-                .then(() => setTimeout(fetchLatestQueue, 1200))
+                .then(() => setTimeout(() => {
+                    fetchLatestQueue();
+                    fetchRevenueReport();
+                }, 1200))
                 .catch(err => console.error('GAS Sync error:', err));
         }
 
@@ -1629,6 +1434,7 @@ function resetQueueToday() {
             renderMyTicket();
             renderTVDisplay();
             renderAdminPanel();
+            renderRevenuePanel();
         }
 
         function setSafeText(id, value) {
@@ -1663,8 +1469,6 @@ function resetQueueToday() {
                 return;
             }
 
-            // Tutup otomatis E-Ticket yang sudah selesai/batal saat toko tutup,
-            // kecuali pelanggan tersebut masih dalam proses pelayanan (IN_PROGRESS)
             const shopOpen = isShopOpen();
             const isFinishedOrCancelled = myItem.status === 'COMPLETED' || myItem.status === 'CANCELLED';
             if (!shopOpen && isFinishedOrCancelled && myItem.status !== 'IN_PROGRESS') {
@@ -1756,6 +1560,85 @@ function resetQueueToday() {
                     </div>
                 `).join('');
             }
+        }
+
+        function renderRevenuePanel() {
+            const completedTodayItems = state.queues.filter(q => q.status === 'COMPLETED');
+            const localTodayRevenue = completedTodayItems.reduce((sum, q) => sum + resolveServicePrice(q.service, q.price), 0);
+            const localTodayCount = completedTodayItems.length;
+
+            const rep = state.revenueReport;
+            const todayRev = rep && typeof rep.todayRevenue === 'number' ? Math.max(rep.todayRevenue, localTodayRevenue) : localTodayRevenue;
+            const todayCnt = rep && typeof rep.todayCompleted === 'number' ? Math.max(rep.todayCompleted, localTodayCount) : localTodayCount;
+            const monthRev = rep && typeof rep.monthRevenue === 'number' ? Math.max(rep.monthRevenue, todayRev) : todayRev;
+            const monthCnt = rep && typeof rep.monthCompleted === 'number' ? Math.max(rep.monthCompleted, todayCnt) : todayCnt;
+            const allRev = rep && typeof rep.allTimeRevenue === 'number' ? Math.max(rep.allTimeRevenue, monthRev) : monthRev;
+
+            setSafeText('revTodayAmount', formatRupiah(todayRev));
+            setSafeText('revTodayCount', `${todayCnt} selesai`);
+            setSafeText('revMonthAmount', formatRupiah(monthRev));
+            setSafeText('revMonthCount', `${monthCnt} selesai`);
+            setSafeText('revAllTimeAmount', formatRupiah(allRev));
+
+            const barberContainer = document.getElementById('revBarberBreakdown');
+            if (barberContainer) {
+                barberContainer.innerHTML = BARBER_CHAIRS.map(chair => {
+                    const localSum = completedTodayItems
+                        .filter(q => normalizeBarberChair(q.barber) === chair.name)
+                        .reduce((s, q) => s + resolveServicePrice(q.service, q.price), 0);
+                    const serverSum = rep && rep.byBarberToday ? (Number(rep.byBarberToday[chair.shortName]) || 0) : 0;
+                    const amount = Math.max(localSum, serverSum);
+
+                    return `
+                        <div class="bg-slate-950/80 px-3 py-2 rounded-lg border border-slate-800 flex items-center justify-between">
+                            <span class="text-slate-300 font-semibold">${chair.shortName}</span>
+                            <span class="font-mono font-bold text-amber-400">${formatRupiah(amount)}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            const recentContainer = document.getElementById('revRecentDaysList');
+            if (recentContainer) {
+                const days = rep && Array.isArray(rep.recentDays) && rep.recentDays.length > 0
+                    ? rep.recentDays
+                    : [{ date: getTodayString(), count: todayCnt, revenue: todayRev }];
+
+                recentContainer.innerHTML = days.map(d => `
+                    <div class="bg-slate-950/80 px-3 py-1.5 rounded-lg border border-slate-800 flex items-center justify-between">
+                        <span class="font-mono text-slate-300">${d.date} <span class="text-slate-500">(${d.count}x)</span></span>
+                        <span class="font-mono font-bold text-emerald-400">${formatRupiah(d.revenue)}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function fetchRevenueReport() {
+            if (isGasEnv) {
+                if (typeof google.script.run.getRevenueReport === 'function') {
+                    google.script.run.withSuccessHandler(jsonStr => {
+                        try {
+                            const data = JSON.parse(jsonStr);
+                            if (data && data.success) {
+                                state.revenueReport = data;
+                                renderRevenuePanel();
+                            }
+                        } catch (e) {}
+                    }).getRevenueReport();
+                }
+                return;
+            }
+
+            if (!state.gasUrl) return;
+            fetch(`${state.gasUrl}?action=getRevenueReport`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.success) {
+                        state.revenueReport = data;
+                        renderRevenuePanel();
+                    }
+                })
+                .catch(() => {});
         }
 
         function renderAdminPanel() {
