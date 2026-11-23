@@ -13,6 +13,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- jsPDF Library untuk Unduh Struk / Invoice PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Chart.js untuk Grafik KPI Interaktif -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     
     <script>
         tailwind.config = {
@@ -368,7 +370,7 @@
                                     <div class="service-icon-ring w-12 h-12 mb-2 rounded-full border-2 border-amber-500/40 bg-slate-950 flex items-center justify-center text-amber-400 shadow-md transition-all duration-200">
                                         <i class="fa-solid fa-scissors text-base group-hover:rotate-45 transition-transform duration-300"></i>
                                     </div>
-                                    <div class="font-bold text-xs sm:text-[13px] text-white leading-tight">Hair Cut</div>
+                                    <div class="font-bold text-xs sm:text-[13px] text-white leading-tight">Haircut</div>
                                     <div class="text-[10px] text-slate-400 line-clamp-1 mt-0.5">Potong, cuci & styling</div>
                                     <div class="text-[11px] font-bold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20 mt-1.5">Rp 45.000</div>
                                 </label>
@@ -693,6 +695,97 @@
                 </div>
             </div>
 
+            <!-- Panel KPI & Grafik Visual Layanan -->
+            <div class="glass-panel p-4 sm:p-5 rounded-2xl border border-amber-500/25 space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-700/60 pb-3">
+                    <div>
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-chart-pie text-amber-400"></i> Dashboard KPI & Grafik Layanan
+                        </h3>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Visualisasi performa antrian, rata-rata nilai transaksi, dan produktivitas kapster</p>
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-700">
+                        <button type="button" id="kpiFilterToday" onclick="setKpiPeriod('today')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-500 text-slate-950 transition">Hari Ini</button>
+                        <button type="button" id="kpiFilterAll" onclick="setKpiPeriod('all')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold text-slate-400 hover:text-white transition">Semua Waktu</button>
+                    </div>
+                </div>
+
+                <!-- 4 Kartu KPI Utama -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div class="bg-slate-950/80 p-3.5 rounded-xl border border-emerald-500/30 flex flex-col justify-between">
+                        <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            <span>Completion Rate</span>
+                            <i class="fa-solid fa-circle-check text-emerald-400 text-xs"></i>
+                        </div>
+                        <div id="kpiCompletionRate" class="text-xl sm:text-2xl font-extrabold font-mono text-emerald-400 mt-1.5">0%</div>
+                        <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mt-2">
+                            <div id="kpiCompletionBar" class="bg-emerald-400 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        <div id="kpiCompletionSub" class="text-[10px] text-slate-400 mt-1.5">0 dari 0 antrian selesai</div>
+                    </div>
+
+                    <div class="bg-slate-950/80 p-3.5 rounded-xl border border-amber-500/30 flex flex-col justify-between">
+                        <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            <span>Rata-rata / Pelanggan</span>
+                            <i class="fa-solid fa-receipt text-amber-400 text-xs"></i>
+                        </div>
+                        <div id="kpiAvgTicket" class="text-xl sm:text-2xl font-extrabold font-mono text-amber-400 mt-1.5">Rp 0</div>
+                        <div id="kpiAvgTicketSub" class="text-[10px] text-slate-400 mt-2">Average Ticket Value</div>
+                    </div>
+
+                    <div class="bg-slate-950/80 p-3.5 rounded-xl border border-rose-500/30 flex flex-col justify-between">
+                        <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            <span>Tingkat Batal</span>
+                            <i class="fa-solid fa-user-xmark text-rose-400 text-xs"></i>
+                        </div>
+                        <div id="kpiCancelRate" class="text-xl sm:text-2xl font-extrabold font-mono text-rose-400 mt-1.5">0%</div>
+                        <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mt-2">
+                            <div id="kpiCancelBar" class="bg-rose-400 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        <div id="kpiCancelSub" class="text-[10px] text-slate-400 mt-1.5">0 antrian dibatalkan</div>
+                    </div>
+
+                    <div class="bg-slate-950/80 p-3.5 rounded-xl border border-blue-500/30 flex flex-col justify-between">
+                        <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            <span>Top Kapster</span>
+                            <i class="fa-solid fa-trophy text-amber-400 text-xs"></i>
+                        </div>
+                        <div id="kpiTopBarberName" class="text-lg sm:text-xl font-extrabold text-white mt-1.5 truncate">-</div>
+                        <div id="kpiTopBarberSub" class="text-[10px] text-blue-300 font-semibold mt-2">Belum ada transaksi</div>
+                    </div>
+                </div>
+
+                <!-- 3 Grafik Interaktif -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 pt-1">
+                    <div class="lg:col-span-5 bg-slate-900/75 p-3.5 rounded-xl border border-slate-800 flex flex-col">
+                        <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <i class="fa-solid fa-chart-column text-amber-400"></i> Performa Omzet Kapster
+                        </h4>
+                        <div class="relative h-52 w-full">
+                            <canvas id="kpiBarberChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-4 bg-slate-900/75 p-3.5 rounded-xl border border-slate-800 flex flex-col">
+                        <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <i class="fa-solid fa-chart-line text-emerald-400"></i> Tren Omzet 7 Hari
+                        </h4>
+                        <div class="relative h-52 w-full">
+                            <canvas id="kpiTrendChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-3 bg-slate-900/75 p-3.5 rounded-xl border border-slate-800 flex flex-col">
+                        <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <i class="fa-solid fa-chart-pie text-blue-400"></i> Komposisi Layanan
+                        </h4>
+                        <div class="relative h-52 w-full">
+                            <canvas id="kpiServiceChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="glass-panel p-4 sm:p-5 rounded-2xl border border-slate-700/50">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
                     <h3 class="text-sm font-bold text-white flex items-center gap-2">
@@ -817,7 +910,7 @@
     </div>
 
     <script>
-        const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbyuH4qs6b2aAboYOBqTCBQ5RK9RQYMqjh7hj5tZ2579Tnq-c7sLRpLccAJrJuk5IRQb/exec';
+        const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/GANTI_DENGAN_ID_WEB_APP_ANDA/exec';
         const DEFAULT_ADMIN_PIN = '1998';
 
         // Sumber data terpusat layanan & kapster/kursi agar selalu selaras di form, antrian, TV, dan struk PDF
@@ -864,7 +957,14 @@
             soundEnabled: true,
             adminPin: DEFAULT_ADMIN_PIN,
             isAdminUnlocked: false,
-            revenueReport: null
+            revenueReport: null,
+            kpiPeriod: 'today'
+        };
+
+        let kpiCharts = {
+            barber: null,
+            trend: null,
+            service: null
         };
 
         function formatRupiah(num) {
@@ -1435,6 +1535,7 @@
             renderTVDisplay();
             renderAdminPanel();
             renderRevenuePanel();
+            renderKpiDashboard();
         }
 
         function setSafeText(id, value) {
@@ -1613,6 +1714,280 @@
             }
         }
 
+        function setKpiPeriod(period) {
+            state.kpiPeriod = period;
+            const btnToday = document.getElementById('kpiFilterToday');
+            const btnAll = document.getElementById('kpiFilterAll');
+            if (btnToday && btnAll) {
+                if (period === 'today') {
+                    btnToday.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-500 text-slate-950 transition';
+                    btnAll.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold text-slate-400 hover:text-white transition';
+                } else {
+                    btnAll.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-500 text-slate-950 transition';
+                    btnToday.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold text-slate-400 hover:text-white transition';
+                }
+            }
+            renderKpiDashboard();
+        }
+
+        function renderKpiDashboard() {
+            const rep = state.revenueReport;
+            const isToday = state.kpiPeriod === 'today';
+
+            // Hitung metrik lokal hari ini sebagai cadangan/pelengkap real-time
+            const localTotal = state.queues.length;
+            const localCompletedItems = state.queues.filter(q => q.status === 'COMPLETED');
+            const localCompleted = localCompletedItems.length;
+            const localCancelled = state.queues.filter(q => q.status === 'CANCELLED').length;
+            const localRevenue = localCompletedItems.reduce((s, q) => s + resolveServicePrice(q.service, q.price), 0);
+
+            let totalOrders = localTotal;
+            let completedOrders = localCompleted;
+            let cancelledOrders = localCancelled;
+            let revenue = localRevenue;
+
+            if (rep) {
+                if (isToday) {
+                    totalOrders = Math.max(Number(rep.todayTotalOrders) || 0, localTotal);
+                    completedOrders = Math.max(Number(rep.todayCompleted) || 0, localCompleted);
+                    cancelledOrders = Math.max(Number(rep.todayCancelled) || 0, localCancelled);
+                    revenue = Math.max(Number(rep.todayRevenue) || 0, localRevenue);
+                } else {
+                    totalOrders = Math.max(Number(rep.allTimeTotalOrders) || 0, localTotal);
+                    completedOrders = Math.max(Number(rep.allTimeCompleted) || 0, localCompleted);
+                    cancelledOrders = Math.max(Number(rep.allTimeCancelled) || 0, localCancelled);
+                    revenue = Math.max(Number(rep.allTimeRevenue) || 0, localRevenue);
+                }
+            }
+
+            const completionRate = totalOrders > 0 ? Math.round((completedOrders / totalOrders) * 100) : 0;
+            const cancelRate = totalOrders > 0 ? Math.round((cancelledOrders / totalOrders) * 100) : 0;
+            const avgTicket = completedOrders > 0 ? Math.round(revenue / completedOrders) : 0;
+
+            setSafeText('kpiCompletionRate', `${completionRate}%`);
+            setSafeText('kpiCompletionSub', `${completedOrders} dari ${totalOrders} antrian selesai`);
+            const compBar = document.getElementById('kpiCompletionBar');
+            if (compBar) compBar.style.width = `${Math.min(completionRate, 100)}%`;
+
+            setSafeText('kpiAvgTicket', formatRupiah(avgTicket));
+            setSafeText('kpiAvgTicketSub', `Dari ${completedOrders} transaksi selesai`);
+
+            setSafeText('kpiCancelRate', `${cancelRate}%`);
+            setSafeText('kpiCancelSub', `${cancelledOrders} antrian dibatalkan`);
+            const cancBar = document.getElementById('kpiCancelBar');
+            if (cancBar) cancBar.style.width = `${Math.min(cancelRate, 100)}%`;
+
+            // Data omzet & jumlah pelanggan per kapster
+            const barberLabels = BARBER_CHAIRS.map(c => c.shortName);
+            const barberRevenues = BARBER_CHAIRS.map(chair => {
+                const localSum = localCompletedItems
+                    .filter(q => normalizeBarberChair(q.barber) === chair.name)
+                    .reduce((s, q) => s + resolveServicePrice(q.service, q.price), 0);
+                if (!rep) return localSum;
+                const serverVal = isToday
+                    ? (Number(rep.byBarberToday?.[chair.shortName]) || 0)
+                    : (Number(rep.byBarberAll?.[chair.shortName]) || 0);
+                return isToday ? Math.max(localSum, serverVal) : Math.max(localSum, serverVal);
+            });
+
+            const barberCounts = BARBER_CHAIRS.map(chair => {
+                const localCnt = localCompletedItems.filter(q => normalizeBarberChair(q.barber) === chair.name).length;
+                if (!rep) return localCnt;
+                const serverCnt = isToday
+                    ? (Number(rep.byBarberCountToday?.[chair.shortName]) || 0)
+                    : (Number(rep.byBarberCountAll?.[chair.shortName]) || 0);
+                return Math.max(localCnt, serverCnt);
+            });
+
+            // Tentukan Top Kapster
+            let topIdx = 0;
+            barberRevenues.forEach((val, idx) => {
+                if (val > barberRevenues[topIdx]) topIdx = idx;
+            });
+            if (barberRevenues[topIdx] > 0) {
+                setSafeText('kpiTopBarberName', barberLabels[topIdx]);
+                setSafeText('kpiTopBarberSub', `${formatRupiah(barberRevenues[topIdx])} (${barberCounts[topIdx]}x layanan)`);
+            } else {
+                setSafeText('kpiTopBarberName', '-');
+                setSafeText('kpiTopBarberSub', 'Belum ada transaksi');
+            }
+
+            if (typeof Chart === 'undefined') return;
+
+            // 1. Grafik Batang Performa Kapster
+            const barberCanvas = document.getElementById('kpiBarberChart');
+            if (barberCanvas) {
+                if (kpiCharts.barber) {
+                    kpiCharts.barber.data.labels = barberLabels;
+                    kpiCharts.barber.data.datasets[0].data = barberRevenues;
+                    kpiCharts.barber.update();
+                } else {
+                    kpiCharts.barber = new Chart(barberCanvas, {
+                        type: 'bar',
+                        data: {
+                            labels: barberLabels,
+                            datasets: [{
+                                label: 'Omzet (Rp)',
+                                data: barberRevenues,
+                                backgroundColor: ['#f59e0b', '#10b981', '#3b82f6', '#a855f7'],
+                                borderRadius: 6,
+                                maxBarThickness: 34
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        label: (ctx) => ` ${formatRupiah(ctx.raw)}`
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: { ticks: { color: '#cbd5e1', font: { size: 11, weight: 'bold' } }, grid: { display: false } },
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        color: '#94a3b8',
+                                        font: { size: 10 },
+                                        callback: (v) => v >= 1000 ? `${v / 1000}k` : v
+                                    },
+                                    grid: { color: 'rgba(148, 163, 184, 0.12)' }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            // 2. Grafik Garis Tren Omzet 7 Hari Terakhir
+            const trendCanvas = document.getElementById('kpiTrendChart');
+            if (trendCanvas) {
+                const rawDays = rep && Array.isArray(rep.recentDays) && rep.recentDays.length > 0
+                    ? [...rep.recentDays].reverse()
+                    : [{ date: getTodayString(), revenue: localRevenue, count: localCompleted }];
+                const trendLabels = rawDays.map(d => String(d.date).slice(5)); // MM-DD
+                const trendValues = rawDays.map(d => Number(d.revenue) || 0);
+
+                if (kpiCharts.trend) {
+                    kpiCharts.trend.data.labels = trendLabels;
+                    kpiCharts.trend.data.datasets[0].data = trendValues;
+                    kpiCharts.trend.update();
+                } else {
+                    kpiCharts.trend = new Chart(trendCanvas, {
+                        type: 'line',
+                        data: {
+                            labels: trendLabels,
+                            datasets: [{
+                                label: 'Omzet Harian',
+                                data: trendValues,
+                                borderColor: '#10b981',
+                                backgroundColor: 'rgba(16, 185, 129, 0.16)',
+                                borderWidth: 2.5,
+                                pointBackgroundColor: '#34d399',
+                                pointRadius: 4,
+                                tension: 0.35,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        label: (ctx) => ` ${formatRupiah(ctx.raw)}`
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: { ticks: { color: '#cbd5e1', font: { size: 10 } }, grid: { display: false } },
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        color: '#94a3b8',
+                                        font: { size: 10 },
+                                        callback: (v) => v >= 1000 ? `${v / 1000}k` : v
+                                    },
+                                    grid: { color: 'rgba(148, 163, 184, 0.12)' }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            // 3. Grafik Donat Komposisi Layanan Terlaris
+            const serviceCanvas = document.getElementById('kpiServiceChart');
+            if (serviceCanvas) {
+                const localMix = {
+                    'Haircut': 0,
+                    'Beard': 0,
+                    'VIP': 0,
+                    'Color': 0
+                };
+                localCompletedItems.forEach(q => {
+                    const s = String(q.service || '').toLowerCase();
+                    if (s.includes('beard')) localMix['Beard'] += 1;
+                    else if (s.includes('vip')) localMix['VIP'] += 1;
+                    else if (s.includes('color') || s.includes('dye')) localMix['Color'] += 1;
+                    else localMix['Haircut'] += 1;
+                });
+
+                const mixData = (!isToday && rep && rep.serviceMix)
+                    ? [
+                        Number(rep.serviceMix['Haircut Regular']) || 0,
+                        Number(rep.serviceMix['Beard Trim & Grooming']) || 0,
+                        Number(rep.serviceMix['Gentleman VIP Package']) || 0,
+                        Number(rep.serviceMix['Hair Color / Dye']) || 0
+                    ]
+                    : [localMix['Haircut'], localMix['Beard'], localMix['VIP'], localMix['Color']];
+
+                const hasAnyService = mixData.some(v => v > 0);
+                const chartValues = hasAnyService ? mixData : [1, 0, 0, 0];
+                const chartColors = hasAnyService
+                    ? ['#f59e0b', '#38bdf8', '#a855f7', '#f43f5e']
+                    : ['#334155', '#334155', '#334155', '#334155'];
+
+                if (kpiCharts.service) {
+                    kpiCharts.service.data.datasets[0].data = chartValues;
+                    kpiCharts.service.data.datasets[0].backgroundColor = chartColors;
+                    kpiCharts.service.update();
+                } else {
+                    kpiCharts.service = new Chart(serviceCanvas, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Haircut', 'Beard', 'VIP', 'Color'],
+                            datasets: [{
+                                data: chartValues,
+                                backgroundColor: chartColors,
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            cutout: '62%',
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        color: '#cbd5e1',
+                                        boxWidth: 10,
+                                        padding: 8,
+                                        font: { size: 10 }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
         function fetchRevenueReport() {
             if (isGasEnv) {
                 if (typeof google.script.run.getRevenueReport === 'function') {
@@ -1622,6 +1997,7 @@
                             if (data && data.success) {
                                 state.revenueReport = data;
                                 renderRevenuePanel();
+                                renderKpiDashboard();
                             }
                         } catch (e) {}
                     }).getRevenueReport();
@@ -1636,6 +2012,7 @@
                     if (data && data.success) {
                         state.revenueReport = data;
                         renderRevenuePanel();
+                        renderKpiDashboard();
                     }
                 })
                 .catch(() => {});
